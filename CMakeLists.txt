@@ -46,4 +46,5 @@ link_libraries(
 add_executable(
 	rt
 	"${PROJECT_SOURCE_DIR}/rt.cpp"
+	"${PROJECT_SOURCE_DIR}/camera.cpp"
 )
