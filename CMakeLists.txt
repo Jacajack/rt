@@ -47,4 +47,6 @@ add_executable(
 	rt
 	"${PROJECT_SOURCE_DIR}/rt.cpp"
 	"${PROJECT_SOURCE_DIR}/camera.cpp"
+	"${PROJECT_SOURCE_DIR}/scene.cpp"
+	"${PROJECT_SOURCE_DIR}/renderer.cpp"
 )

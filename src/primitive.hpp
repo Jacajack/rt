@@ -4,14 +4,6 @@
 
 namespace rt {
 
-/**
-	Abstract base for providing ray_intersect functionality
-*/
-struct ray_intersectable
-{
-	virtual inline bool ray_intersect(const ray &r, ray_intersection &hit) const = 0;
-};
-
 struct sphere : public ray_intersectable
 {
 	sphere(const glm::vec3 &o, float r) :

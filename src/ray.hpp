@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
-#include "material.hpp"
+
+#include "bsdf.hpp"
 
 namespace rt {
 
@@ -30,11 +31,20 @@ struct ray_intersection
 };
 
 /**
-	Carries information about ray-object intersection
+	Carries information about ray-object intersection and light transportation information
 */
-struct ray_bounce
+struct ray_hit : public ray_intersection
 {
+	abstract_brdf *brdf;
+};
 
+/**
+	Abstract base for providing ray_intersect functionality.
+*/
+class ray_intersectable
+{
+public:
+	virtual inline bool ray_intersect(const ray &r, ray_intersection &hit) const = 0;
 };
 
 }
