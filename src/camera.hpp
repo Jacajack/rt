@@ -10,6 +10,7 @@ public:
 	camera(const glm::vec3 &pos, const glm::vec3 &forward, const glm::vec3 &up, float near, float fov, float aspect);
 	void set_position(const glm::vec3 &pos);
 	void set_direction(const glm::vec3 &forward, const glm::vec3 &up = {0, 1, 0});
+	void look_at(const glm::vec3 &target, const glm::vec3 &up = {0, 1, 0});
 	void set_near_plane(float near);
 	void set_fov(float fov);
 	void set_aspect_ratio(float aspect);

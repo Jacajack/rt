@@ -25,6 +25,11 @@ void camera::set_direction(const glm::vec3 &forward, const glm::vec3 &up)
 	update_near_plane();
 }
 
+void camera::look_at(const glm::vec3 &target, const glm::vec3 &up)
+{
+	set_direction(target - m_position, up);
+}
+
 void camera::set_near_plane(float near)
 {
 	m_near = near;
