@@ -61,6 +61,11 @@ bool sphere::ray_intersect(const ray &r, ray_intersection &hit) const
 
 struct plane : public ray_intersectable
 {
+	plane(const glm::vec3 &o, const glm::vec3 &n) :
+		origin(o),
+		normal(n)
+	{}
+
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
 
 	glm::vec3 origin;
@@ -74,11 +79,13 @@ bool plane::ray_intersect(const ray &r, ray_intersection &hit) const
 	{
 		float t = glm::dot(this->normal, this->origin - r.origin) / n_dot_dir;
 
+		// Reject negative
+		if (t < 0) return false;
+
 		hit.distance = t;
 		hit.direction = r.direction;
 		hit.position = r.origin + r.direction * t;
 		hit.normal = this->normal;
-
 		return true;
 	}
 
