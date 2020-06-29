@@ -32,10 +32,10 @@ void renderer::sample()
 
 			// TEMP
 			// Evaluate BRDF
-			glm::vec3 lum = hit.brdf->operator()({0, 1, 0}, -hit.direction, hit.normal);
+			glm::vec3 lum = hit.mat->brdf(hit, {0, 1, 0}, -hit.direction, hit.normal);
 
 			// Write pixel
-			m_pixels[y * m_resolution.x + x] = 4.f * lum;	
+			m_pixels[y * m_resolution.x + x] = lum;	
 		}
 	}
 }

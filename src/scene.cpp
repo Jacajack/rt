@@ -13,26 +13,38 @@ void scene::add_object(scene_object *obj)
 */
 rt::ray_hit scene::cast_ray(const rt::ray &r) const
 {
+	// Nearest intersection
 	rt::ray_hit hit, best_hit;
 	best_hit.distance = HUGE_VALF;
-
+	best_hit.object = nullptr;
+	
 	for (auto obj_ptr : m_objects)
 	{
-		// Return closest hit
-		if (obj_ptr->cast_ray(r, hit) && hit.distance < best_hit.distance)
+		const auto &geometry = obj_ptr->get_geometry();
+		if (geometry.ray_intersect(r, hit) && hit < best_hit)
+		{
 			best_hit = hit;
+			best_hit.object = obj_ptr;
+		}
 	}	
 
-	// World hit?
-	if (best_hit.distance == HUGE_VALF)
+	// World hit
+	if (best_hit.object == nullptr)
 	{
-		static diffuse_brdf world_brdf{glm::vec3(0.2, 0.2, 0.7)};
-
-		best_hit.position = {HUGE_VALF, HUGE_VALF, HUGE_VALF};
-		best_hit.direction = r.direction;
-		best_hit.normal = -r.direction;
-		best_hit.brdf = &world_brdf;
+		rt::ray_hit world_hit;
+		world_hit.distance = HUGE_VALF;
+		world_hit.position = {HUGE_VALF, HUGE_VALF, HUGE_VALF};
+		world_hit.direction = r.direction;
+		world_hit.normal = -r.direction;
+		world_hit.geometry = nullptr;
+		world_hit.mat = m_world_material.get();
+		world_hit.object = nullptr;
+		return world_hit;
 	}
+	
+	// Copy material and geometry pointers from object data
+	best_hit.mat = &best_hit.object->get_material();
+	best_hit.geometry = &best_hit.object->get_geometry();
 
 	return best_hit;
 }

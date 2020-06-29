@@ -1,8 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
 
-#include "bsdf.hpp"
-
 namespace rt {
 
 /**
@@ -28,14 +26,11 @@ struct ray_intersection
 	glm::vec3 direction;
 	glm::vec3 position;
 	glm::vec3 normal;
-};
 
-/**
-	Carries information about ray-object intersection and light transportation information
-*/
-struct ray_hit : public ray_intersection
-{
-	abstract_brdf *brdf;
+	inline bool operator<(const ray_intersection &rhs) const
+	{
+		return distance < rhs.distance;
+	} 
 };
 
 /**

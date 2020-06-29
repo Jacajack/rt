@@ -11,6 +11,16 @@
 				"kind": "test",
 				"isDefault": true
 			}
+		},
+
+		{
+			"label": "CMake debug build and run",
+			"type": "shell",
+			"command": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug && make -j 12 && ./rt",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
 		}
 	]
 }

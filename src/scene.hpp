@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 #include "ray.hpp"
 #include "material.hpp"
 
@@ -11,36 +12,42 @@ namespace rt {
 class scene_object
 {
 public:
-	scene_object(ray_intersectable &geometry) :
+	scene_object(ray_intersectable &geometry, material &mat) :
 		m_geometry(&geometry),
-		m_material(nullptr)
+		m_material(&mat)
 	{}
 
-	/**
-		Intersects the ray with object's geometry
-	*/
-	inline bool cast_ray(const ray &r, ray_hit &hit) const;
+	// TEMP
+	const ray_intersectable &get_geometry() const
+	{
+		return *m_geometry;
+	}
+
+	const material &get_material() const
+	{
+		return *m_material;
+	}
 
 private:
-	ray_intersectable *m_geometry;
+	ray_intersectable *m_geometry; //! \todo replace with pretransformed geometry
 	material *m_material;
 };
 
+
 /**
-	Evaluates ray intersection with the object and provides BRDF for the intersection point
+	ray_intersection + pointers to material, geometry and object
 */
-bool scene_object::cast_ray(const ray &r, ray_hit &hit) const
+struct ray_hit : public ray_intersection
 {
-	static diffuse_brdf test_brdf{glm::vec3{0.5, 0, 0}};
+	const ray_intersectable *geometry;
+	const material *mat;
+	const scene_object *object;
 
-	if (m_geometry->ray_intersect(r, hit))
+	inline bool operator<(const ray_intersection &rhs) const
 	{
-		hit.brdf = &test_brdf;
-		return true;
+		return distance < rhs.distance;
 	}
-
-	return false;
-}
+};
 
 /**
 	Contains entities
@@ -54,6 +61,7 @@ public:
 
 private:
 	std::vector<scene_object*> m_objects;
+	std::unique_ptr<material> m_world_material = std::make_unique<simple_sky_material>();
 };
 
 }
