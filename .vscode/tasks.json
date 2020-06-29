@@ -22,5 +22,15 @@
 				"isDefault": true
 			}
 		}
+
+		{
+			"label": "CMake release build and run",
+			"type": "shell",
+			"command": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j 12 && ./rt",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
+		}
 	]
 }
