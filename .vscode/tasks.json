@@ -4,33 +4,46 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "CMake build and run",
+			"label": "cmake-debug-build",
 			"type": "shell",
-			"command": "mkdir -p build && cd build && cmake .. && make -j 12 && ./rt",
+			"command": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug && make -j 12",
 			"group": {
-				"kind": "test",
+				"kind": "build",
+				"isDefault": false
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "cmake-release-build",
+			"type": "shell",
+			"command": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j 12",
+			"group": {
+				"kind": "build",
 				"isDefault": true
-			}
+			},
+			"problemMatcher": []
 		},
 
 		{
-			"label": "CMake debug build and run",
+			"label": "debug-run",
 			"type": "shell",
-			"command": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug && make -j 12 && ./rt",
+			"command": "cd build && ./rt",
 			"group": {
 				"kind": "test",
-				"isDefault": true
-			}
-		}
+				"isDefault": false
+			},
+			"dependsOn": ["cmake-debug-build"]
+		},
 
 		{
-			"label": "CMake release build and run",
+			"label": "release-run",
 			"type": "shell",
-			"command": "mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j 12 && ./rt",
+			"command": "cd build && ./rt",
 			"group": {
 				"kind": "test",
 				"isDefault": true
-			}
-		}
+			},
+			"dependsOn": ["cmake-release-build"]
+		},
 	]
 }
