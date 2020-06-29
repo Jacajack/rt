@@ -33,19 +33,19 @@ private:
 	material *m_material;
 };
 
-
 /**
-	ray_intersection + pointers to material, geometry and object
+	A simple sky material that can be used by the scene
 */
-struct ray_hit : public ray_intersection
+class simple_sky_material : public material
 {
-	const ray_intersectable *geometry;
-	const material *mat;
-	const scene_object *object;
+public:
+	simple_sky_material() :
+		material(true, false)
+	{}
 
-	inline bool operator<(const ray_intersection &rhs) const
+	glm::vec3 brdf(const ray_hit &hit, const glm::vec3 &L, const glm::vec3 &V, const glm::vec3 &N) const override
 	{
-		return distance < rhs.distance;
+		return glm::vec3{0.7, 0.7, 1.0} * (1 - std::abs(V.y)) + glm::vec3{0.1, 0.2, 0.4} * std::abs(V.z);
 	}
 };
 

@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include <random>
 
 using rt::renderer;
 
@@ -15,8 +16,14 @@ renderer::renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolut
 
 	In the future we will be having more fun in this function
 */
-void renderer::sample()
+void renderer::sample(int seed)
 {
+	std::mt19937 rng(seed);
+	std::uniform_real_distribution<float> dist(0.f, 1.f);
+
+	std::vector<rt::ray_bounce> bounces;
+	bounces.reserve(20);
+
 	for (int y = 0; y < m_resolution.y; y++)
 	{
 		for (int x = 0; x < m_resolution.x; x++)
@@ -30,12 +37,29 @@ void renderer::sample()
 			rt::ray pixel_ray = m_camera->get_ray(pixel_pos);
 			rt::ray_hit hit = m_scene->cast_ray(pixel_ray);
 
-			// TEMP
-			// Evaluate BRDF
-			glm::vec3 lum = hit.mat->brdf(hit, {0, 1, 0}, -hit.direction, hit.normal);
+			// Clear bounces list
+			bounces.clear();
+
+			// Bounce rays
+			while (bounces.size() < 10 && !hit.mat->is_emissive())
+			{
+				// Get bounced ray
+				bounces.push_back(hit.get_bounced_ray(dist(rng), dist(rng)));
+
+				// Cast the bounced ray
+				hit = m_scene->cast_ray(bounces.back().new_ray);
+			}
+
+			// TEMP Only count rays if the last hit was emissive
+			if (!hit.mat->is_emissive()) continue;
+
+			// Calculate contribution
+			glm::vec3 factor{1, 1, 1};
+			for (const auto &b : bounces)
+				factor *= b.factor;
 
 			// Write pixel
-			m_pixels[y * m_resolution.x + x] = lum;	
+			m_pixels[y * m_resolution.x + x] += factor; 
 		}
 	}
 }

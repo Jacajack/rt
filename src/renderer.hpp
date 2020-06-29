@@ -14,7 +14,7 @@ class renderer
 public:
 	renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolution);
 
-	void sample();
+	void sample(int seed);
 
 	void pixels_to_rgba(uint8_t *ptr);
 

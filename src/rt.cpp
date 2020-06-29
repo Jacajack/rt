@@ -2,6 +2,7 @@
 #include <mutex>
 #include <chrono>
 #include <future>
+#include <random>
 #include <SFML/Graphics.hpp>
 
 #include "ray.hpp"
@@ -64,27 +65,35 @@ int main(int argc, char **argv)
 	
 	// The scene and camera
 	rt::scene scene;
-	rt::camera cam({0, 4, -8}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
+	rt::camera cam({0, 4, 8}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
 	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
-	rt::test_material test_mat;
+	rt::test_material red_mat{{0.5, 0.1, 0.1}};
+	rt::test_material green_mat{{0.1, 0.4, 0.1}};
+	rt::test_material white_mat{{0.9, 0.9, 0.9}};
 
 	// Test sphere and floor
 	rt::sphere s{{0, 2, 0}, 2};
-	rt::scene_object sphere_obj{s, test_mat};
+	rt::sphere s2{{3, 1, 1}, 1};
+	rt::scene_object sphere_obj{s, red_mat};
+	rt::scene_object sphere2_obj{s2, green_mat};
 	scene.add_object(&sphere_obj);
+	scene.add_object(&sphere2_obj);
 	rt::plane p{{0, 0, 0}, {0, 1, 0}};
-	rt::scene_object plane_obj{p, test_mat};
+	rt::scene_object plane_obj{p, white_mat};
 	scene.add_object(&plane_obj);
 
 	// Camera setup
 	cam.look_at(s.origin);
 
+	// Main random device
+	std::random_device rnd;
+
 	// While the preview is open
-	while (preview_task_fut.wait_for(0ms) != std::future_status::ready)
+	for (int i = 0; preview_task_fut.wait_for(0ms) != std::future_status::ready && i < 3; i++)
 	{
-		ren.sample();
+		ren.sample(rnd());
 		
 		{
 			std::lock_guard lock{pixels_mutex};

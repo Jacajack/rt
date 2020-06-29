@@ -48,3 +48,4 @@ rt::ray_hit scene::cast_ray(const rt::ray &r) const
 
 	return best_hit;
 }
+
