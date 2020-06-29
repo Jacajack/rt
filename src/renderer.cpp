@@ -22,7 +22,9 @@ void renderer::sample(int seed)
 	std::uniform_real_distribution<float> dist(0.f, 1.f);
 
 	std::vector<rt::ray_bounce> bounces;
+	// std::vector<rt::ray_hit> hits;
 	bounces.reserve(20);
+	// hits.reserve(20);
 
 	for (int y = 0; y < m_resolution.y; y++)
 	{
@@ -70,10 +72,14 @@ void renderer::pixels_to_rgba(uint8_t *ptr)
 	{
 		for (int x = 0; x < m_resolution.x; x++)
 		{
-			//! \todo tonemapping
-			*ptr++ = glm::clamp(m_pixels[y * m_resolution.x + x].r * 255, 0.f, 255.f);
-			*ptr++ = glm::clamp(m_pixels[y * m_resolution.x + x].g * 255, 0.f, 255.f);
-			*ptr++ = glm::clamp(m_pixels[y * m_resolution.x + x].b * 255, 0.f, 255.f);
+			// Reinhard tonemapping and sRGB correction
+			glm::vec3 pix =	m_pixels[y * m_resolution.x + x];
+			pix = pix / (pix + 1.f);
+			pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
+
+			*ptr++ = pix.r * 255.99f;
+			*ptr++ = pix.g * 255.99f;
+			*ptr++ = pix.b * 255.99f;
 			*ptr++ = 255;
 		}
 	}
