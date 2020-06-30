@@ -1,9 +1,11 @@
 #include <iostream>
+#include <iomanip>
 #include <thread>
 #include <mutex>
 #include <chrono>
 #include <future>
 #include <random>
+#include <chrono>
 #include <SFML/Graphics.hpp>
 
 #include "ray.hpp"
@@ -91,8 +93,11 @@ int main(int argc, char **argv)
 	// Main random device
 	std::random_device rnd;
 
+	// Start time
+	auto t_start = std::chrono::high_resolution_clock::now();
+
 	// While the preview is open
-	for (int i = 0; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
+	for (int i = 1; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
 	{
 		ren.sample(rnd());
 		
@@ -101,7 +106,10 @@ int main(int argc, char **argv)
 			ren.pixels_to_rgba(pixels);
 		}
 
-		std::cerr << i << " samples.." << std::endl;
+		auto t_now = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> t_total = t_now - t_start;
+
+		std::cerr << std::setw(4) << i << " samples - time = " << std::setw(8) << t_total.count() << "s, per sample = " << std::setw(8) << t_total.count() / i << "s" << std::endl;
 	}
 
 	preview_thread.join();
