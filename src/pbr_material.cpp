@@ -6,28 +6,30 @@ using rt::pbr_material;
 /**
 	Cook-Torrance specular BRDF + Lambertian diffuse
 */
-glm::vec3 pbr_material::brdf(const ray_hit &hit, const glm::vec3 &L, const glm::vec3 &V, const glm::vec3 &N) const
+glm::vec3 pbr_material::brdf(const ray_hit &hit, const glm::vec3 &wi) const
 {
 	float alpha = m_roughness * m_roughness;
 
-	// The halfway vector
-	glm::vec3 H = glm::normalize(L + V);
+	// All the vectors
+	glm::vec3 N = glm::normalize(hit.normal);
+	glm::vec3 wo = glm::normalize(-hit.direction);
+	glm::vec3 H = glm::normalize(wi + wo);
 
 	// Estimated surface's response at normal incidence
 	glm::vec3 F0 = glm::mix(glm::vec3{0.04f}, m_color, m_metallic);
 
 	// Specular and diffuse components
-	glm::vec3 k_specular = fresnel(H, V, F0);
+	glm::vec3 k_specular = fresnel(H, wo, F0);
 	glm::vec3 k_diffuse = (1.f - k_specular) * (1.f - m_metallic);
 
 	// k for Schlick-GGX
 	float k = std::pow(m_roughness + 1.f, 2.f) / 8.f;
 
 	// Lambert and Cook-Torrance terms
-	float n_dot_l = glm::max(glm::dot(N, L), 0.f);
-	float n_dot_v = glm::max(glm::dot(N, V), 0.f);
+	float n_dot_l = glm::max(glm::dot(N, wi), 0.f);
+	float n_dot_v = glm::max(glm::dot(N, wo), 0.f);
 	glm::vec3 lambert{m_color * n_dot_l / rt::pi<>};
-	glm::vec3 cook_torrance{ndf(H, N, alpha) * geometry(L, V, N, k) / glm::max(4.f * n_dot_l * n_dot_v, 0.001f)};
+	glm::vec3 cook_torrance{ndf(H, N, alpha) * geometry(wi, wo, N, k) / glm::max(4.f * n_dot_l * n_dot_v, 0.001f)};	
 	return k_specular * cook_torrance + k_diffuse * lambert;
 }
 
@@ -82,9 +84,19 @@ rt::ray_bounce pbr_material::get_bounce(const rt::ray_hit &hit, float r1, float 
 		std::cos(theta)
 	};
 
-	// Get random tangent and bitangent
-	glm::vec3 tangent{glm::normalize(glm::cross(random_vector, hit.normal))};
-	glm::vec3 bitangent{glm::normalize(glm::cross(tangent, hit.normal))};
+	// Find axis that is not parallel to the normal
+	constexpr float sqrt3 = 0.57735026919f;
+	glm::vec3 axis;
+	if (std::abs(hit.normal.x) < sqrt3)
+		axis = {1, 0, 0};
+	else if (std::abs(hit.normal.y) < sqrt3)
+		axis = {0, 1, 0};
+	else
+		axis = {0, 0, 1};
+
+	// Calculate tangent and bitangent
+	glm::vec3 tangent{glm::cross(axis, hit.normal)};
+	glm::vec3 bitangent{glm::cross(tangent, hit.normal)};
 
 	// Calculate TBN matrix
 	glm::mat3 tbn_mat{
@@ -102,14 +114,14 @@ rt::ray_bounce pbr_material::get_bounce(const rt::ray_hit &hit, float r1, float 
 	// Scattering properties
 	rt::ray_bounce bounce;
 	bounce.reflected_ray = reflected_ray;
-	bounce.brdf = this->brdf(hit, reflected_ray.direction, -hit.direction, hit.normal) * glm::dot(hit.normal, reflected_ray.direction);
+	bounce.brdf = this->brdf(hit, reflected_ray.direction) * glm::dot(hit.normal, reflected_ray.direction);
 	bounce.reflection_pdf = 1.f;
 	
 	// Transmission
 	bounce.btdf = glm::vec3{0.f};
 	
 	// Emission
-	bounce.emission = glm::vec3{0.f};
+	bounce.emission = m_emission;
 
 	return bounce;
 }
