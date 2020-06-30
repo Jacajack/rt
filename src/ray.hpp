@@ -8,6 +8,8 @@ namespace rt {
 */
 struct ray
 {
+	ray() = default;
+
 	ray(const glm::vec3 &o, const glm::vec3 &d) :
 		origin(o),
 		direction(glm::normalize(d))
@@ -49,24 +51,21 @@ public:
 */
 struct ray_bounce
 {
-	ray_bounce(const ray &r, const glm::vec3 &fact) :
-		new_ray(r),
-		factor(fact)
-	{}
+	//! Reflected ray
+	ray reflected_ray;
+	glm::vec3 brdf;
+	float reflection_pdf;
 
-	ray new_ray;
+	//! Transmitted ray
+	ray transmitted_ray;
+	glm::vec3 btdf;
 
-	/**
-		This factor is computed from surface's BSDF and PDF and
-		determines bounced off ray's contribution to the lighting
-		of the surface it has bounced off. The cosine factor is also
-		accounted here.
-	*/
-	glm::vec3 factor;
+	//! Emission value
+	glm::vec3 emission;
 };
 
 // Forward declarations of material and scene object
-class material;
+class abstract_material;
 class scene_object;
 
 /**
@@ -75,7 +74,7 @@ class scene_object;
 struct ray_hit : public ray_intersection
 {
 	const ray_intersectable *geometry;
-	const material *mat;
+	const abstract_material *material;
 	const scene_object *object;
 
 	inline bool operator<(const ray_intersection &rhs) const
@@ -85,10 +84,10 @@ struct ray_hit : public ray_intersection
 
 	/**
 		Based on two uniformly distributed random variables,
-		returns a ray bounced off the surface (in future, taking the
-		BRDF PDF into account) and its contribution to the lighting.
+		returns scattering and emission information and new rays
+		to be sampled.
 	*/
-	ray_bounce get_bounced_ray(float r1, float r2) const;
+	ray_bounce get_bounce(float r1, float r2) const;
 };
 
 }

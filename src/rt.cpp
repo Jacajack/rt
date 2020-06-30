@@ -73,9 +73,9 @@ int main(int argc, char **argv)
 	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
-	rt::pbr_material red_mat{{0.7, 0.1, 0.1}};
-	rt::pbr_material green_mat{{0.1, 0.6, 0.1}};
-	rt::pbr_material white_mat{{0.9, 0.9, 0.9}};
+	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.05};
+	rt::pbr_material green_mat{{0.1, 0.6, 0.1}, 0.5};
+	rt::pbr_material white_mat{{0.9, 0.9, 0.9}, 1.0};
 
 	// Test sphere and floor
 	rt::sphere s{{0, 2, 0}, 2};

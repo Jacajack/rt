@@ -22,9 +22,7 @@ void renderer::sample(int seed)
 	std::uniform_real_distribution<float> dist(0.f, 1.f);
 
 	std::vector<rt::ray_bounce> bounces;
-	// std::vector<rt::ray_hit> hits;
 	bounces.reserve(20);
-	// hits.reserve(20);
 
 	for (int y = 0; y < m_resolution.y; y++)
 	{
@@ -44,25 +42,29 @@ void renderer::sample(int seed)
 			bounces.clear();
 
 			// Bounce rays
-			while (bounces.size() < 10 && !hit.mat->is_emissive())
+			do
 			{
 				// Get bounced ray
-				bounces.push_back(hit.get_bounced_ray(dist(rng), dist(rng)));
+				bounces.push_back(hit.get_bounce(dist(rng), dist(rng)));
 
 				// Cast the bounced ray
-				hit = m_scene->cast_ray(bounces.back().new_ray);
+				hit = m_scene->cast_ray(bounces.back().reflected_ray);
+			}
+			while (bounces.size() < 10 && bounces.back().emission == glm::vec3{0.f});
+
+			// Skip if the last hit was not emissive
+			if (bounces.back().emission == glm::vec3{0.f}) continue;
+			
+			// Integrate radiance from all bounces
+			glm::vec3 radiance{0.f};
+			for (int i = bounces.size() - 1; i >= 0; i--)
+			{
+				const auto &b = bounces.at(i);
+				radiance = radiance * b.brdf / b.reflection_pdf + b.emission;
 			}
 
-			// TEMP Only count rays if the last hit was emissive
-			if (!hit.mat->is_emissive()) continue;
-
-			// Calculate contribution
-			glm::vec3 factor{1, 1, 1};
-			for (const auto &b : bounces)
-				factor *= b.factor;
-
 			// Write pixel
-			m_pixels[y * m_resolution.x + x] += factor; 
+			m_pixels[y * m_resolution.x + x] += radiance;
 		}
 	}
 

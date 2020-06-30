@@ -5,20 +5,13 @@
 namespace rt {
 
 /**
-	Materials provide BSDF based on ray_intersection objects.
-	In other words, materials provide scattering information for intersection points.
-
-	Additionally, materials determine what types can/should be cast from the intersection point.
-
-	In the future, materials will also provide functions for importance BSDF sampling.
+	Materials are a way of providing scattering and emission information
+	for ray_hit ray intersection points.
 */
 class abstract_material
 {
 public:
-	abstract_material(bool emissive, bool transmissive) :
-		m_is_emissive(emissive),
-		m_is_transmissive(transmissive)
-	{}
+	abstract_material() = default;
 
 	abstract_material(const abstract_material &) = default;
 	abstract_material(abstract_material &&) = default;
@@ -28,42 +21,11 @@ public:
 
 	virtual ~abstract_material() = default;
 
-	virtual glm::vec3 brdf(const ray_hit &hit, const glm::vec3 &light, const glm::vec3 &view, const glm::vec3 &normal) const = 0;
-	// virtual glm::vec3 emission(const ray_hit &hit, const glm::vec3 &view, const glm::vec3 &normal) const = 0;
-
-	bool is_emissive() const
-	{
-		return m_is_emissive;
-	}
-
-	bool is_trasmissive() const
-	{
-		return m_is_transmissive;
-	}
-
-private:
-	bool m_is_emissive;
-	bool m_is_transmissive;
-};
-
-/**
-	A test Phong-like material
-*/
-class test_material : public abstract_material
-{
-public:
-	test_material(const glm::vec3 &color) :
-		abstract_material(false, false),
-		m_color(color)
-	{}
-
-	glm::vec3 brdf(const ray_hit &hit, const glm::vec3 &L, const glm::vec3 &V, const glm::vec3 &N) const override
-	{
-		return m_color * glm::clamp(glm::dot(N, L), 0.f, 1.f);
-	}
-
-private:
-	glm::vec3 m_color;
+	/**
+		Returns scattering and emission information and generates new rays based on two
+		uniformly random numbers
+	*/
+	virtual rt::ray_bounce get_bounce(const ray_hit &hit, float r1, float r2) const = 0;
 };
 
 }

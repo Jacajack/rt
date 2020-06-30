@@ -12,7 +12,7 @@ namespace rt {
 class scene_object
 {
 public:
-	scene_object(ray_intersectable &geometry, material &mat) :
+	scene_object(ray_intersectable &geometry, abstract_material &mat) :
 		m_geometry(&geometry),
 		m_material(&mat)
 	{}
@@ -23,29 +23,31 @@ public:
 		return *m_geometry;
 	}
 
-	const material &get_material() const
+	const abstract_material &get_material() const
 	{
 		return *m_material;
 	}
 
 private:
 	ray_intersectable *m_geometry; //! \todo replace with pretransformed geometry
-	material *m_material;
+	abstract_material *m_material;
 };
 
 /**
 	A simple sky material that can be used by the scene
 */
-class simple_sky_material : public material
+class simple_sky_material : public abstract_material
 {
 public:
-	simple_sky_material() :
-		material(true, false)
-	{}
 
-	glm::vec3 brdf(const ray_hit &hit, const glm::vec3 &L, const glm::vec3 &V, const glm::vec3 &N) const override
+	rt::ray_bounce get_bounce(const ray_hit &hit, float r1, float r2) const override
 	{
-		return glm::vec3{0.7, 0.7, 1.0} * (1 - std::abs(V.y)) + glm::vec3{0.1, 0.2, 0.4} * std::abs(V.z);
+		rt::ray_bounce bounce;
+		bounce.brdf = glm::vec3{0.f};
+		bounce.reflection_pdf = 1.f;
+		bounce.btdf = glm::vec3{0.f};
+		bounce.emission = 4.f * glm::mix(glm::vec3{0.3, 0.3, 0.4}, glm::vec3{1.1, 1.0, 2.0}, std::abs(hit.direction.y));
+		return bounce;
 	}
 };
 
@@ -61,7 +63,7 @@ public:
 
 private:
 	std::vector<scene_object*> m_objects;
-	std::unique_ptr<material> m_world_material = std::make_unique<simple_sky_material>();
+	std::unique_ptr<abstract_material> m_world_material = std::make_unique<simple_sky_material>();
 };
 
 }

@@ -37,13 +37,13 @@ rt::ray_hit scene::cast_ray(const rt::ray &r) const
 		world_hit.direction = r.direction;
 		world_hit.normal = -r.direction;
 		world_hit.geometry = nullptr;
-		world_hit.mat = m_world_material.get();
+		world_hit.material = m_world_material.get();
 		world_hit.object = nullptr;
 		return world_hit;
 	}
 	
 	// Copy material and geometry pointers from object data
-	best_hit.mat = &best_hit.object->get_material();
+	best_hit.material = &best_hit.object->get_material();
 	best_hit.geometry = &best_hit.object->get_geometry();
 
 	return best_hit;
