@@ -13,6 +13,7 @@
 #include "primitive.hpp"
 #include "scene.hpp"
 #include "renderer.hpp"
+#include "pbr_material.hpp"
 
 static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, std::mutex *pixel_data_mutex)
 {
@@ -72,9 +73,9 @@ int main(int argc, char **argv)
 	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
-	rt::test_material red_mat{{0.7, 0.1, 0.1}};
-	rt::test_material green_mat{{0.1, 0.6, 0.1}};
-	rt::test_material white_mat{{0.9, 0.9, 0.9}};
+	rt::pbr_material red_mat{{0.7, 0.1, 0.1}};
+	rt::pbr_material green_mat{{0.1, 0.6, 0.1}};
+	rt::pbr_material white_mat{{0.9, 0.9, 0.9}};
 
 	// Test sphere and floor
 	rt::sphere s{{0, 2, 0}, 2};

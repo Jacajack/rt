@@ -50,4 +50,5 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/camera.cpp"
 	"${PROJECT_SOURCE_DIR}/scene.cpp"
 	"${PROJECT_SOURCE_DIR}/renderer.cpp"
+	"${PROJECT_SOURCE_DIR}/pbr_material.cpp"
 )

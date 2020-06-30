@@ -12,24 +12,25 @@ namespace rt {
 
 	In the future, materials will also provide functions for importance BSDF sampling.
 */
-class material
+class abstract_material
 {
 public:
-	material(bool emissive, bool transmissive) :
+	abstract_material(bool emissive, bool transmissive) :
 		m_is_emissive(emissive),
 		m_is_transmissive(transmissive)
 	{}
 
-	material(const material &) = default;
-	material(material &&) = default;
+	abstract_material(const abstract_material &) = default;
+	abstract_material(abstract_material &&) = default;
 
-	material &operator=(const material &) = default;
-	material &operator=(material &&) = default;
+	abstract_material &operator=(const abstract_material &) = default;
+	abstract_material &operator=(abstract_material &&) = default;
 
-	virtual ~material() = default;
+	virtual ~abstract_material() = default;
 
 	virtual glm::vec3 brdf(const ray_hit &hit, const glm::vec3 &light, const glm::vec3 &view, const glm::vec3 &normal) const = 0;
-	
+	// virtual glm::vec3 emission(const ray_hit &hit, const glm::vec3 &view, const glm::vec3 &normal) const = 0;
+
 	bool is_emissive() const
 	{
 		return m_is_emissive;
@@ -48,11 +49,11 @@ private:
 /**
 	A test Phong-like material
 */
-class test_material : public material
+class test_material : public abstract_material
 {
 public:
 	test_material(const glm::vec3 &color) :
-		material(false, false),
+		abstract_material(false, false),
 		m_color(color)
 	{}
 
