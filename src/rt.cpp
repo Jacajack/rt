@@ -1,3 +1,4 @@
+#include <iostream>
 #include <thread>
 #include <mutex>
 #include <chrono>
@@ -69,8 +70,8 @@ int main(int argc, char **argv)
 	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
-	rt::test_material red_mat{{0.5, 0.1, 0.1}};
-	rt::test_material green_mat{{0.1, 0.4, 0.1}};
+	rt::test_material red_mat{{0.7, 0.1, 0.1}};
+	rt::test_material green_mat{{0.1, 0.6, 0.1}};
 	rt::test_material white_mat{{0.9, 0.9, 0.9}};
 
 	// Test sphere and floor
@@ -91,7 +92,7 @@ int main(int argc, char **argv)
 	std::random_device rnd;
 
 	// While the preview is open
-	for (int i = 0; preview_task_fut.wait_for(0ms) != std::future_status::ready && i < 3; i++)
+	for (int i = 0; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
 	{
 		ren.sample(rnd());
 		
@@ -99,6 +100,8 @@ int main(int argc, char **argv)
 			std::lock_guard lock{pixels_mutex};
 			ren.pixels_to_rgba(pixels);
 		}
+
+		std::cerr << i << " samples.." << std::endl;
 	}
 
 	preview_thread.join();

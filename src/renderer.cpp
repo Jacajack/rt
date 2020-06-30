@@ -30,10 +30,11 @@ void renderer::sample(int seed)
 	{
 		for (int x = 0; x < m_resolution.x; x++)
 		{
-			// Normalized pixel coordinates
-			float nx = (x + 0.5f) / m_resolution.x * 2.f - 1.f;
-			float ny = 1.f - (y + 0.5f) / m_resolution.y * 2.f;
-			glm::vec2 pixel_pos{nx, ny};
+			// Normalized pixel coordinates + random anti-aliasing offset
+			glm::vec2 pixel_pos{
+				(x + dist(rng)) / m_resolution.x * 2.f - 1.f,
+				1.f - (y + dist(rng)) / m_resolution.y * 2.f
+			};
 
 			// Cast ray
 			rt::ray pixel_ray = m_camera->get_ray(pixel_pos);
@@ -64,6 +65,8 @@ void renderer::sample(int seed)
 			m_pixels[y * m_resolution.x + x] += factor; 
 		}
 	}
+
+	m_samples++;
 }
 
 void renderer::pixels_to_rgba(uint8_t *ptr)
@@ -73,7 +76,7 @@ void renderer::pixels_to_rgba(uint8_t *ptr)
 		for (int x = 0; x < m_resolution.x; x++)
 		{
 			// Reinhard tonemapping and sRGB correction
-			glm::vec3 pix =	m_pixels[y * m_resolution.x + x];
+			glm::vec3 pix =	m_pixels[y * m_resolution.x + x] / float(m_samples);
 			pix = pix / (pix + 1.f);
 			pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
 

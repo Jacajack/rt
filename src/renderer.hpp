@@ -24,6 +24,7 @@ private:
 	glm::ivec2 m_resolution;
 
 	std::vector<glm::vec3> m_pixels;
+	int m_samples = 0;
 };
 
 }
