@@ -73,9 +73,10 @@ int main(int argc, char **argv)
 	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
-	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.05};
+	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.005};
 	rt::pbr_material green_mat{{0.1, 0.6, 0.1}, 0.5};
 	rt::pbr_material white_mat{{0.9, 0.9, 0.9}, 1.0};
+	rt::pbr_material glow_mat{{0.0f, 0.0f, 0.0f}, 1.0f, 0.0f, glm::vec3{100.f}};
 
 	// Test sphere and floor
 	rt::sphere s{{0, 2, 0}, 2};
@@ -87,6 +88,11 @@ int main(int argc, char **argv)
 	rt::plane p{{0, 0, 0}, {0, 1, 0}};
 	rt::scene_object plane_obj{p, white_mat};
 	scene.add_object(&plane_obj);
+
+	// Glowing sphere
+	rt::sphere s3{{1, 0.5, 2}, 0.5};
+	rt::scene_object sphere3_obj{s3, glow_mat};
+	scene.add_object(&sphere3_obj);
 
 	// Camera setup
 	cam.look_at(s.origin);

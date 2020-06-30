@@ -4,6 +4,10 @@ Another excercise in programming...
 
 <hr>
 
+2020-06-30 - Cook-Torrance materials, fixed sampling and emissive materials handling:<br>
+<img src=screens/2020-06-30-2.png /><br>
+~1800 samples, 233.8ms per sample
+
 2020-06-30 - Reinhard operator, gamma correction, anti-aliasing and sample averaging:<br>
 <img src=screens/2020-06-30-1.png /><br>
 
