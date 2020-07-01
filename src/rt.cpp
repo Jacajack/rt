@@ -70,13 +70,16 @@ int main(int argc, char **argv)
 	// The scene and camera
 	rt::scene scene;
 	rt::camera cam({0, 4, 8}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
+	cam.look_at({0, 0, 0});
 	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
-	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.005};
+	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.1};
+	rt::pbr_material gold_mat{{0.8, 0.4, 0.1}, 0.2, 1.0};
 	rt::pbr_material green_mat{{0.1, 0.6, 0.1}, 0.5};
 	rt::pbr_material white_mat{{0.9, 0.9, 0.9}, 1.0};
 	rt::pbr_material glow_mat{{0.0f, 0.0f, 0.0f}, 1.0f, 0.0f, glm::vec3{100.f}};
+	rt::pbr_material mirror_mat{{0.8f, 0.8f, 0.8f}, 0.05f, 1.0f};
 
 	// Test sphere and floor
 	rt::sphere s{{0, 2, 0}, 2};
@@ -90,9 +93,34 @@ int main(int argc, char **argv)
 	scene.add_object(&plane_obj);
 
 	// Glowing sphere
-	rt::sphere s3{{1, 0.5, 2}, 0.5};
+	rt::sphere s3{{1.5, 0.5, 3}, 0.5};
 	rt::scene_object sphere3_obj{s3, glow_mat};
 	scene.add_object(&sphere3_obj);
+
+	// Mirror sphere
+	rt::sphere s4{{-1.5, 0.5, 3}, 0.5};
+	rt::scene_object sphere4_obj{s4, mirror_mat};
+	scene.add_object(&sphere4_obj);
+
+	// Golden sphere
+	rt::sphere s5{{5, 3, -4}, 3};
+	rt::scene_object sphere5_obj{s5, gold_mat};
+	scene.add_object(&sphere5_obj);
+
+	// Back wall
+	rt::plane wall_b{{0, 0, -8}, {0, 0, 1}};
+	rt::scene_object wall_b_obj{wall_b, white_mat};
+	scene.add_object(&wall_b_obj);
+
+	// Left wall
+	rt::plane wall_l{{-4, 0, 0}, {1, 0, 0}};
+	rt::scene_object wall_l_obj{wall_l, green_mat};
+	scene.add_object(&wall_l_obj);
+
+	// Right wall
+	rt::plane wall_r{{5, 0, 0}, {-1, 0, 0}};
+	rt::scene_object wall_r_obj{wall_r, red_mat};
+	scene.add_object(&wall_r_obj);
 
 	// Camera setup
 	cam.look_at(s.origin);
