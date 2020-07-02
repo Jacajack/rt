@@ -27,8 +27,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS_DEBUG_STR}")
 
 # Release compilation flags
 set( CXX_FLAGS_RELEASE_LIST
-	"-g"
-	"-pg"
+	# "-g"
+	# "-pg"
 	# "-s"
 	"-O3"
 	"-ffast-math"

@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 	// The image data
 	int width = 1024;
 	int height = 1024;
-	std::uint8_t pixels[width * height * 4];
+	std::vector<uint8_t> pixels(width * height * 4);
 	std::mutex pixels_mutex;
 
 	// This thread displays contents of 'pixels' in real time
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 		
 		{
 			std::lock_guard lock{pixels_mutex};
-			ren.pixels_to_rgba(pixels);
+			ren.pixels_to_rgba(pixels.data());
 		}
 
 		auto t_now = std::chrono::high_resolution_clock::now();
