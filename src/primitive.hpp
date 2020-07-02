@@ -1,10 +1,11 @@
 #pragma once
 #include <glm/glm.hpp>
 #include "ray.hpp"
+#include "aabb.hpp"
 
 namespace rt {
 
-struct sphere : public ray_intersectable
+struct sphere : public ray_intersectable, public aabb_provider
 {
 	sphere(const glm::vec3 &o, float r) :
 		origin(o),
@@ -12,6 +13,7 @@ struct sphere : public ray_intersectable
 	{}
 
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
+	inline aabb get_aabb() const override;
 
 	glm::vec3 origin;
 	float radius;
@@ -59,6 +61,12 @@ bool sphere::ray_intersect(const ray &r, ray_intersection &hit) const
 	}
 }
 
+inline aabb sphere::get_aabb() const
+{
+	return aabb{origin - glm::vec3{radius}, origin + glm::vec3{radius}};
+}
+
+
 struct plane : public ray_intersectable
 {
 	plane(const glm::vec3 &o, const glm::vec3 &n) :
@@ -93,13 +101,14 @@ bool plane::ray_intersect(const ray &r, ray_intersection &hit) const
 	return false;
 }
 
-struct triangle : public ray_intersectable
+struct triangle : public ray_intersectable, public aabb_provider
 {
 	glm::vec3 vertices[3];
 	glm::vec3 normals[3];
 	glm::vec2 uvs[3];
 
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
+	inline aabb get_aabb() const override;
 };
 
 /**
@@ -112,7 +121,6 @@ bool triangle::ray_intersect(const ray &r, ray_intersection &hit) const
 	glm::vec3 P = glm::cross(r.direction, E2);
 	float det = glm::dot(P, E1);
 	if (det == 0.0) return false;
-	float inv_det = 1.f / det;
 
 	//! \todo Backface culling
 	//! \todo Check if calculating vector components one by one increases perf
@@ -142,6 +150,13 @@ bool triangle::ray_intersect(const ray &r, ray_intersection &hit) const
 	hit.position = r.origin + t * r.direction;
 	hit.normal = glm::normalize(normals[0] * (1.f - u - v) + normals[1] * u + normals[2] * v);
 	return true;
+}
+
+inline aabb triangle::get_aabb() const
+{
+	glm::vec3 min{glm::min(vertices[0], glm::min(vertices[1], vertices[2]))};
+	glm::vec3 max{glm::max(vertices[0], glm::max(vertices[1], vertices[2]))};
+	return aabb{min, max};
 }
 
 }
