@@ -84,16 +84,9 @@ rt::ray_bounce pbr_material::get_bounce(const rt::ray_hit &hit, float r1, float 
 		std::cos(theta)
 	};
 
-	// Find axis that is not parallel to the normal
-	glm::vec3 axis;
-	if (std::abs(hit.normal.y) < 0.99)
-		axis = {0, 1, 0};
-	else
-		axis = {1, 0, 0};
-
 	// Construct TBN matrix to transform from tangent space to world space
-	glm::vec3 tangent{glm::cross(glm::normalize(axis), hit.normal)};
-	glm::vec3 bitangent{glm::cross(tangent, hit.normal)};
+	glm::vec3 tangent{glm::normalize(glm::cross(wo, hit.normal))};
+	glm::vec3 bitangent{glm::normalize(glm::cross(tangent, hit.normal))};
 	glm::mat3 tbn_mat{
 		tangent,
 		bitangent,
