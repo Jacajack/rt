@@ -10,18 +10,25 @@ namespace rt {
 /**
 	Axis-aligned bounding box
 */
-struct aabb : public ray_intersectable
+class aabb : public ray_intersectable
 {
+public:
 	aabb() = default;
 
 	aabb(const glm::vec3 &mi, const glm::vec3 &ma) :
 		min(mi),
-		max(ma)
+		max(ma),
+		size(max - min),
+		half_size(size / 2.f),
+		center((max + min) / 2.f)
 	{}
 
 	aabb(const aabb &lhs, const aabb &rhs) :
 		min(glm::min(lhs.min, rhs.min)),
-		max(glm::max(lhs.max, rhs.max))
+		max(glm::max(lhs.max, rhs.max)),
+		size(max - min),
+		half_size(size / 2.f),
+		center((max + min) / 2.f)
 	{}
 
 	inline bool check_aabb_overlap(const aabb &rhs) const;
@@ -30,18 +37,37 @@ struct aabb : public ray_intersectable
 	inline bool check_ray_intersect(const ray &r) const;
 	inline float ray_intersection_distance(const ray &r) const;
 
-	glm::vec3 get_size() const
+	const glm::vec3 &get_min() const
 	{
-		return max - min;
+		return min;
 	}
 
-	glm::vec3 get_center() const
+	const glm::vec3 &get_max() const
 	{
-		return (max + min) / 2.f;
+		return max;
 	}
 
+	const glm::vec3 &get_size() const
+	{
+		return size;
+	}
+
+	const glm::vec3 &get_half_size() const
+	{
+		return half_size;
+	}
+
+	const glm::vec3 &get_center() const
+	{
+		return center;
+	}
+
+private:
 	glm::vec3 min;
-	glm::vec3 max;	
+	glm::vec3 max;
+	glm::vec3 size;
+	glm::vec3 half_size;
+	glm::vec3 center;
 };
 
 /**
@@ -94,80 +120,57 @@ inline bool aabb::check_ray_intersect(const ray &r) const
 }
 
 /**
-	Returns distance to ray-box intersection. Returns HUGE_VALF on miss
+	Returns closest distance to ray-box intersection. Returns HUGE_VALF on miss
 */
 inline float aabb::ray_intersection_distance(const ray &r) const
 {
 	// The intersection point
 	float t = HUGE_VALF;
 
-	// Check YZ planes
-	if (r.direction.x != 0.f)
+	// Transfrom into AABB coordinate system
+	glm::vec3 d{r.direction};
+	glm::vec3 o{r.origin - get_center()};
+	const glm::vec3 &half{get_half_size()};
+
+	// Mul determines whether the ray is going to be intersected with positive
+	// or negative side of the box.
+	// This thing here is actually significantly faster than 'nice' glm equivalent
+	// glm::vec3 mul{(glm::vec3{glm::lessThan(glm::abs(o), half)} * 2.f - 1.f) * glm::sign(d)};
+	glm::vec3 mul{
+		(std::abs(o.x) < half.x) == (d.x > 0) ? 1.f : -1.f,
+		(std::abs(o.y) < half.y) == (d.y > 0) ? 1.f : -1.f,
+		(std::abs(o.z) < half.z) == (d.z > 0) ? 1.f : -1.f,
+	};
+
+	// Calculate distances to plane intersections
+	// Undefined behavior for rays parallel to axes? Maybe.
+	glm::vec3 T{(half * mul - o) / d};
+	
+	// For each side, calculate intersection and check if it lies within the box 
+	glm::vec3 p;
+	
+	if (T.x > 0)
 	{
-		float t1 = (min.x - r.origin.x) / r.direction.x;
-		float t2 = (max.x - r.origin.x) / r.direction.x;
-		
-		// Pick closer positive
-		if (t1 > 0 && t2 > 0)
-		{
-			float u = std::min(t1, t2);
-			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.0001f))
-				t = u;
-		}
-		else if (t1 * t2 < 0)
-		{
-			float u = std::max(t1, t2);
-			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.0001f))
-				t = u;
-		}
+		p.y = o.y + d.y * T.x;
+		p.z = o.z + d.z * T.x;
+		if (std::abs(p.y) < half.y && std::abs(p.z) < half.z) 
+			t = T.x;
 	}
 
-	// Check XZ planes
-	if (r.direction.y != 0.f)
+	if (T.y > 0)
 	{
-		float t1 = (min.y - r.origin.y) / r.direction.y;
-		float t2 = (max.y - r.origin.y) / r.direction.y;
-		
-		// Pick closer positive
-		if (t1 > 0 && t2 > 0)
-		{
-			float u = std::min(t1, t2);
-			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.0001f))
-				t = std::min(t, u);
-		}
-		else if (t1 * t2 < 0)
-		{
-			float u = std::max(t1, t2);
-			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.0001f))
-				t = std::min(t, u);
-		}
+		p.x = o.x + d.x * T.y;
+		p.z = o.z + d.z * T.y;
+		if (std::abs(p.x) < half.x && std::abs(p.z) < half.z) 
+			t = std::min(t, T.y);
 	}
 
-	// Check ZY planes
-	if (r.direction.z != 0.f)
+	if (T.z > 0)
 	{
-		float t1 = (min.z - r.origin.z) / r.direction.z;
-		float t2 = (max.z - r.origin.z) / r.direction.z;
-		
-		// Pick closer positive
-		if (t1 > 0 && t2 > 0)
-		{
-			float u = std::min(t1, t2);
-			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.0001f))
-				t = std::min(t, u);
-		}
-		else if (t1 * t2 < 0)
-		{
-			float u = std::max(t1, t2);
-			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.0001f))
-				t = std::min(t, u);
-		}
+		p.x = o.x + d.x * T.z;
+		p.y = o.y + d.y * T.z;
+		if (std::abs(p.y) < half.y && std::abs(p.x) < half.x) 
+			t = std::min(t, T.z);
 	}
 
 	return t;
