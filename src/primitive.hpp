@@ -97,7 +97,52 @@ struct triangle : public ray_intersectable
 {
 	glm::vec3 vertices[3];
 	glm::vec3 normals[3];
+	glm::vec3 uvs[3];
+
+	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
 };
+
+/**
+	Based on: https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
+*/
+bool triangle::ray_intersect(const ray &r, ray_intersection &hit) const
+{
+	glm::vec3 E1 = vertices[1] - vertices[0];
+	glm::vec3 E2 = vertices[2] - vertices[0];
+	glm::vec3 P = glm::cross(r.direction, E2);
+	float det = glm::dot(P, E1);
+	if (det == 0.0) return false;
+	float inv_det = 1.f / det;
+
+	//! \todo Backface culling
+	//! \todo Check if calculating vector components one by one increases perf
+
+	glm::vec3 T = r.origin - vertices[0];
+	glm::vec3 Q = glm::cross(T, E1);
+	glm::vec3 tuv = glm::vec3{glm::dot(Q, E2), glm::dot(P, T), glm::dot(Q, r.direction)} * (1.f/ det);
+	float t = tuv.x;
+	float u = tuv.y;
+	float v = tuv.z;
+
+	// Check u bounds
+	if (u < 0.f || u > 1.f)
+		return false;
+
+	// Check v bounds
+	if (v < 0.f || u + v > 1.f)	
+		return false;
+
+	// Reject negative t
+	if (t < 0.f)
+		return false;
+
+	// Return hit
+	hit.distance = t;
+	hit.direction = r.direction;
+	hit.position = r.origin + t * r.direction;
+	hit.normal = glm::normalize(normals[0] * (1.f - u - v) + normals[1] * u + normals[2] * v);
+	return true;
+}
 
 struct triangle_mesh : public ray_intersectable
 {
