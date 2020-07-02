@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <memory>
 
 #include "primitive_soup.hpp"
@@ -44,7 +45,9 @@ private:
 	void calculate_volume();
 
 	aabb m_volume;
-	std::vector<bvh_node> m_children;
+	std::unique_ptr<bvh_node> m_left;
+	std::unique_ptr<bvh_node> m_right;
+	bool m_children_overlap = false;
 	std::vector<rt::soup_triangle> m_triangles;
 };
 

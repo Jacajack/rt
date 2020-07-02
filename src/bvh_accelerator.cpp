@@ -19,14 +19,14 @@ bvh_node::bvh_node(const rt::primitive_soup &soup) :
 }
 
 /**
-	Calulates AAB for BVH node based on childrens' and triangles AABBs
+	Calulates AAB for BVH node based on childrens' and triangles' AABBs
 */
 void bvh_node::calculate_volume()
 {
 	aabb vol({0, 0, 0}, {0, 0, 0});
 	
-	for (const auto &c : m_children)
-		vol = aabb{vol, c.m_volume};
+	if (m_left) vol = aabb{vol, m_left->get_aabb()};
+	if (m_right) vol = aabb{vol, m_right->get_aabb()};
 	
 	for (const auto &t : m_triangles)
 		vol = aabb{vol, t.get_aabb()};
@@ -69,10 +69,13 @@ void bvh_node::subdivide()
 		split = m_triangles.begin() + m_triangles.size() / 2;
 	
 	// Create children and remove triangles from this node
-	m_children.emplace_back(m_triangles.begin(), split);
-	m_children.emplace_back(split, m_triangles.end());
+	m_left = std::make_unique<bvh_node>(m_triangles.begin(), split);
+	m_right = std::make_unique<bvh_node>(split, m_triangles.end());
 	m_triangles.clear();
 	m_triangles.shrink_to_fit();
+
+	// Check if the children overlap
+	m_children_overlap = m_left->get_aabb().check_aabb_overlap(m_right->get_aabb());
 }
 
 void bvh_node::recursively_subdivide(unsigned int primitive_count)
@@ -81,33 +84,83 @@ void bvh_node::recursively_subdivide(unsigned int primitive_count)
 		return;
 
 	subdivide();
-	for (auto &c : m_children)
-		c.recursively_subdivide(primitive_count);
+	m_left->recursively_subdivide(primitive_count);
+	m_right->recursively_subdivide(primitive_count);
 }
 
+/**
+	Checks the ray agains everything inside the node.
+	\warning This node's AABB is not tested against the ray
+*/
 bool bvh_node::cast_ray(const rt::ray &r, rt::ray_hit &best_hit) const
 {
-	if (m_volume.check_ray_intersect(r))
+	rt::ray_hit h;
+	best_hit.distance = HUGE_VALF;
+
+	// If node has triangles, it's a leaf node and hence
+	// children don't need to be traversed
+	if (m_triangles.empty())
 	{
-		rt::ray_hit h;
-		best_hit.distance = HUGE_VALF;
+		// Distances to child AABBs intersections
+		float t1, t2;
+		t1 = m_left->get_aabb().ray_intersection_distance(r);
+		t2 = m_right->get_aabb().ray_intersection_distance(r);
 
-		// Check children 
-		for (const auto &c : m_children)
-			if (c.cast_ray(r, h))
+		if (t1 == HUGE_VALF && t2 == HUGE_VALF) // Both missed
+			return false; 
+		else if (t1 == HUGE_VALF || t2 == HUGE_VALF) // One missed
+		{
+			// Check the closer child
+			if (t1 != HUGE_VALF) m_left->cast_ray(r, h);
+			else if (t2 != HUGE_VALF) m_right->cast_ray(r, h);
+			best_hit = std::min(best_hit, h);
+		}
+		else // Both hit
+		{
+			// Check both children if they overlap or the closer one otherwise
+			if (m_children_overlap)
+			{
+				// But still check the closer child first
+				if (t1 < t2)
+					m_left->cast_ray(r, h);
+				else
+					m_right->cast_ray(r, h);
+
 				best_hit = std::min(best_hit, h);
 
-		// Check primitives
-		for (const auto &t : m_triangles)
-			if (t.cast_ray(r, h))
-				best_hit = std::min(best_hit, h);
+				// Now, if the hit is closer than the second bounding volume 
+				// we can skip it
+				if (best_hit.distance < std::max(t1, t2))
+					return true;
+				
+				// Check the farther child
+				if (t1 < t2)
+					m_right->cast_ray(r, h);
+				else
+					m_left->cast_ray(r, h);
 
-		return best_hit.distance != HUGE_VALF;
+				best_hit = std::min(best_hit, h);
+			}
+			else
+			{
+				// Only check closer child
+				if (t1 < t2)
+					m_left->cast_ray(r, h);
+				else
+					m_right->cast_ray(r, h);
+
+				best_hit = std::min(best_hit, h);
+			}
+		}
 	}
 	else
 	{
-		return false;
+		for (const auto &t : m_triangles)
+			if (t.cast_ray(r, h))
+				best_hit = std::min(best_hit, h);
 	}
+
+	return best_hit.distance != HUGE_VALF;
 }
 
 bvh_accelerator::bvh_accelerator(rt::primitive_soup &&soup) :
@@ -141,8 +194,9 @@ bool bvh_accelerator::cast_ray(const rt::ray &r, rt::ray_hit &best_hit) const
 			best_hit = std::min(best_hit, h);
 
 	// Traverse BVH
-	if (m_root_node.cast_ray(r, h))
-		best_hit = std::min(best_hit, h);
+	if (m_root_node.get_aabb().check_ray_intersect(r))
+		if (m_root_node.cast_ray(r, h))
+			best_hit = std::min(best_hit, h);
 
 	return best_hit.distance != HUGE_VALF;
 }
