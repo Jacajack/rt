@@ -97,7 +97,7 @@ struct triangle : public ray_intersectable
 {
 	glm::vec3 vertices[3];
 	glm::vec3 normals[3];
-	glm::vec3 uvs[3];
+	glm::vec2 uvs[3];
 
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
 };
@@ -143,9 +143,5 @@ bool triangle::ray_intersect(const ray &r, ray_intersection &hit) const
 	hit.normal = glm::normalize(normals[0] * (1.f - u - v) + normals[1] * u + normals[2] * v);
 	return true;
 }
-
-struct triangle_mesh : public ray_intersectable
-{
-};
 
 }

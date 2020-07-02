@@ -41,6 +41,7 @@ link_libraries(
 	"sfml-system"
 	"sfml-window"
 	"sfml-graphics"
+	"assimp"
 )
 
 add_executable(
@@ -51,4 +52,5 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/scene.cpp"
 	"${PROJECT_SOURCE_DIR}/renderer.cpp"
 	"${PROJECT_SOURCE_DIR}/pbr_material.cpp"
+	"${PROJECT_SOURCE_DIR}/triangle_mesh.cpp"
 )
