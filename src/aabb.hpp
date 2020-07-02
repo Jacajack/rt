@@ -24,6 +24,7 @@ struct aabb : public ray_intersectable
 		max(glm::max(lhs.max, rhs.max))
 	{}
 
+	inline bool check_aabb_overlap(const aabb &rhs) const;
 	inline bool check_point_inside(const glm::vec3 &p, float epsilon = 0.f) const;
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
 	inline bool check_ray_intersect(const ray &r) const;
@@ -42,6 +43,17 @@ struct aabb : public ray_intersectable
 	glm::vec3 min;
 	glm::vec3 max;	
 };
+
+/**
+	Returns true if two AABBs overlap
+*/
+inline bool aabb::check_aabb_overlap(const aabb &rhs) const
+{
+	return	   min.x < rhs.max.x && max.x > rhs.min.x
+			&& min.y < rhs.max.y && max.y > rhs.min.y
+			&& min.z < rhs.max.z && max.z > rhs.min.z;
+}
+
 
 /**
 	Checks whether a point is inside the box. Includes points on the faces
@@ -100,20 +112,20 @@ inline float aabb::ray_intersection_distance(const ray &r) const
 		{
 			float u = std::min(t1, t2);
 			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.001f))
+			if (check_point_inside(v, 0.0001f))
 				t = u;
 		}
 		else if (t1 * t2 < 0)
 		{
 			float u = std::max(t1, t2);
 			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.001f))
+			if (check_point_inside(v, 0.0001f))
 				t = u;
 		}
 	}
 
 	// Check XZ planes
-	if (t == HUGE_VALF && r.direction.y != 0.f)
+	if (r.direction.y != 0.f)
 	{
 		float t1 = (min.y - r.origin.y) / r.direction.y;
 		float t2 = (max.y - r.origin.y) / r.direction.y;
@@ -123,20 +135,20 @@ inline float aabb::ray_intersection_distance(const ray &r) const
 		{
 			float u = std::min(t1, t2);
 			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.001f))
-				t = u;
+			if (check_point_inside(v, 0.0001f))
+				t = std::min(t, u);
 		}
 		else if (t1 * t2 < 0)
 		{
 			float u = std::max(t1, t2);
 			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.001f))
-				t = u;
+			if (check_point_inside(v, 0.0001f))
+				t = std::min(t, u);
 		}
 	}
 
 	// Check ZY planes
-	if (t == HUGE_VALF && r.direction.z != 0.f)
+	if (r.direction.z != 0.f)
 	{
 		float t1 = (min.z - r.origin.z) / r.direction.z;
 		float t2 = (max.z - r.origin.z) / r.direction.z;
@@ -146,15 +158,15 @@ inline float aabb::ray_intersection_distance(const ray &r) const
 		{
 			float u = std::min(t1, t2);
 			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.001f))
-				t = u;
+			if (check_point_inside(v, 0.0001f))
+				t = std::min(t, u);
 		}
 		else if (t1 * t2 < 0)
 		{
 			float u = std::max(t1, t2);
 			glm::vec3 v = r.origin + r.direction * u;
-			if (check_point_inside(v, 0.001f))
-				t = u;
+			if (check_point_inside(v, 0.0001f))
+				t = std::min(t, u);
 		}
 	}
 
