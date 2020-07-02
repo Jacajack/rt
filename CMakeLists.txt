@@ -27,7 +27,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS_DEBUG_STR}")
 
 # Release compilation flags
 set( CXX_FLAGS_RELEASE_LIST
-	"-s"
+	"-g"
+	"-pg"
+	# "-s"
 	"-O3"
 	"-ffast-math"
 	"-ftree-vectorize"
@@ -53,4 +55,6 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/renderer.cpp"
 	"${PROJECT_SOURCE_DIR}/pbr_material.cpp"
 	"${PROJECT_SOURCE_DIR}/triangle_mesh.cpp"
+	"${PROJECT_SOURCE_DIR}/primitive_soup.cpp"
+	"${PROJECT_SOURCE_DIR}/bvh_accelerator.cpp"
 )

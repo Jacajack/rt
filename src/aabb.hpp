@@ -12,6 +12,8 @@ namespace rt {
 */
 struct aabb : public ray_intersectable
 {
+	aabb() = default;
+
 	aabb(const glm::vec3 &mi, const glm::vec3 &ma) :
 		min(mi),
 		max(ma)
@@ -22,12 +24,23 @@ struct aabb : public ray_intersectable
 		max(glm::max(lhs.max, rhs.max))
 	{}
 
-	glm::vec3 min;
-	glm::vec3 max;
-
 	inline bool check_point_inside(const glm::vec3 &p, float epsilon = 0.f) const;
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
+	inline bool check_ray_intersect(const ray &r) const;
 	inline float ray_intersection_distance(const ray &r) const;
+
+	glm::vec3 get_size() const
+	{
+		return max - min;
+	}
+
+	glm::vec3 get_center() const
+	{
+		return (max + min) / 2.f;
+	}
+
+	glm::vec3 min;
+	glm::vec3 max;	
 };
 
 /**
@@ -58,6 +71,14 @@ inline bool aabb::ray_intersect(const ray &r, ray_intersection &hit) const
 	}
 	
 	return false;
+}
+
+/**
+	Returns true if ray intersects AABB
+*/
+inline bool aabb::check_ray_intersect(const ray &r) const
+{
+	return ray_intersection_distance(r) != HUGE_VALF;
 }
 
 /**

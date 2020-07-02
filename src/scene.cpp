@@ -36,7 +36,7 @@ rt::ray_hit scene::cast_ray(const rt::ray &r) const
 		world_hit.position = {HUGE_VALF, HUGE_VALF, HUGE_VALF};
 		world_hit.direction = r.direction;
 		world_hit.normal = -r.direction;
-		world_hit.geometry = nullptr;
+		// world_hit.geometry = nullptr;
 		world_hit.material = m_world_material.get();
 		world_hit.object = nullptr;
 		return world_hit;
@@ -44,8 +44,30 @@ rt::ray_hit scene::cast_ray(const rt::ray &r) const
 	
 	// Copy material and geometry pointers from object data
 	best_hit.material = &best_hit.object->get_material();
-	best_hit.geometry = &best_hit.object->get_geometry();
+	// best_hit.geometry = &best_hit.object->get_geometry();
 
 	return best_hit;
 }
 
+rt::ray_hit scene::cast_ray(const rt::ray &r, const rt::ray_accelerator &accel) const
+{
+	// Nearest intersection
+	rt::ray_hit hit;
+
+	if (accel.cast_ray(r, hit))
+	{
+		return hit;
+	}
+	else
+	{
+		rt::ray_hit world_hit;
+		world_hit.distance = HUGE_VALF;
+		world_hit.position = {HUGE_VALF, HUGE_VALF, HUGE_VALF};
+		world_hit.direction = r.direction;
+		world_hit.normal = -r.direction;
+		// world_hit.geometry = nullptr;
+		world_hit.material = m_world_material.get();
+		world_hit.object = nullptr;
+		return world_hit;
+	}
+}

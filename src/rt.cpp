@@ -14,6 +14,10 @@
 #include "scene.hpp"
 #include "renderer.hpp"
 #include "pbr_material.hpp"
+#include "triangle_mesh.hpp"
+#include "aabb.hpp"
+#include "primitive_soup.hpp"
+#include "bvh_accelerator.hpp"
 
 static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, std::mutex *pixel_data_mutex)
 {
@@ -69,15 +73,12 @@ int main(int argc, char **argv)
 	
 	// The scene and camera
 	rt::scene scene;
-	rt::camera cam({0, 4, 8}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
-	cam.look_at({0, 0, 0});
-	rt::renderer ren{scene, cam, {width, height}};
 
 	// Test material
 	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.1};
 	rt::pbr_material gold_mat{{0.8, 0.4, 0.1}, 0.2, 1.0};
 	rt::pbr_material green_mat{{0.1, 0.6, 0.1}, 0.5};
-	rt::pbr_material white_mat{{0.9, 0.9, 0.9}, 1.0};
+	rt::pbr_material white_mat{{0.9, 0.9, 0.9}, 0.5};
 	rt::pbr_material glow_mat{{0.0f, 0.0f, 0.0f}, 1.0f, 0.0f, glm::vec3{100.f}};
 	rt::pbr_material mirror_mat{{0.8f, 0.8f, 0.8f}, 0.05f, 1.0f};
 
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
 	rt::sphere s2{{3, 1, 1}, 1};
 	rt::scene_object sphere_obj{s, red_mat};
 	rt::scene_object sphere2_obj{s2, green_mat};
-	scene.add_object(&sphere_obj);
+	// scene.add_object(&sphere_obj);
 	scene.add_object(&sphere2_obj);
 	rt::plane p{{0, 0, 0}, {0, 1, 0}};
 	rt::scene_object plane_obj{p, white_mat};
@@ -110,20 +111,50 @@ int main(int argc, char **argv)
 	// Back wall
 	rt::plane wall_b{{0, 0, -8}, {0, 0, 1}};
 	rt::scene_object wall_b_obj{wall_b, white_mat};
-	scene.add_object(&wall_b_obj);
+	// scene.add_object(&wall_b_obj);
 
 	// Left wall
 	rt::plane wall_l{{-4, 0, 0}, {1, 0, 0}};
 	rt::scene_object wall_l_obj{wall_l, green_mat};
-	scene.add_object(&wall_l_obj);
+	// scene.add_object(&wall_l_obj);
 
 	// Right wall
 	rt::plane wall_r{{5, 0, 0}, {-1, 0, 0}};
 	rt::scene_object wall_r_obj{wall_r, red_mat};
-	scene.add_object(&wall_r_obj);
+	// scene.add_object(&wall_r_obj);
+
+	// Test tri
+	rt::triangle tri;
+	tri.vertices[0] = {-10, 2, -10};
+	tri.vertices[1] = {10, 2, -10};
+	tri.vertices[2] = {0, 10, -8};
+	tri.normals[0] = glm::normalize(glm::cross(tri.vertices[0] - tri.vertices[1], tri.vertices[0] - tri.vertices[2]));
+	tri.normals[1] = glm::normalize(glm::cross(tri.vertices[0] - tri.vertices[1], tri.vertices[0] - tri.vertices[2]));
+	tri.normals[2] = glm::normalize(glm::cross(tri.vertices[0] - tri.vertices[1], tri.vertices[0] - tri.vertices[2]));
+	rt::scene_object tri_obj{tri, mirror_mat};
+	// scene.add_object(&tri_obj);
+
+	// Test mesh
+	rt::triangle_mesh monkey("monkey.obj");
+	rt::scene_object monkey_obj{monkey, red_mat};
+	scene.add_object(&monkey_obj);
+
+	rt::aabb a({-1, 1, -1}, {1, 10, 1});
+	rt::scene_object a_obj{a, red_mat};
+	// scene.add_object(&a_obj);
+
+	// BVH accelerator
+	std::cerr << "building BVH..." << std::endl;
+	rt::bvh_accelerator bvh{rt::primitive_soup{scene}};
+	std::cerr << "done" << std::endl;
+
 
 	// Camera setup
+	rt::camera cam({0, 3, 5}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
 	cam.look_at(s.origin);
+
+	// Renderer
+	rt::renderer ren{scene, cam, {width, height}, bvh};
 
 	// Main random device
 	std::random_device rnd;

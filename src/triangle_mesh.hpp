@@ -35,6 +35,14 @@ public:
 	}
 
 	/**
+		Provides read-only access to the triangle data
+	*/
+	const std::vector<rt::triangle> &get_triangles() const
+	{
+		return m_triangles;
+	}
+
+	/**
 		Returns triangle count in the mesh
 	*/
 	unsigned int get_triangle_count() const

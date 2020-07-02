@@ -3,6 +3,7 @@
 #include <memory>
 #include "ray.hpp"
 #include "material.hpp"
+#include "ray_accelerator.hpp"
 
 namespace rt {
 
@@ -57,10 +58,13 @@ public:
 */
 class scene
 {
+	friend class primitive_soup;
+
 public:
 	void add_object(scene_object *obj);
 	
 	ray_hit cast_ray(const ray &r) const;
+	ray_hit cast_ray(const ray &r, const ray_accelerator &accel) const;
 
 private:
 	std::vector<scene_object*> m_objects;

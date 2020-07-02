@@ -3,6 +3,7 @@
 
 #include "camera.hpp"
 #include "scene.hpp"
+#include "ray_accelerator.hpp"
 
 namespace rt {
 
@@ -12,7 +13,7 @@ namespace rt {
 class renderer
 {
 public:
-	renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolution);
+	renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolution, const ray_accelerator &accel);
 
 	void sample(int seed);
 
@@ -21,6 +22,7 @@ public:
 private:
 	const scene *m_scene;
 	const camera *m_camera;
+	const ray_accelerator *m_accelerator;
 	glm::ivec2 m_resolution;
 
 	std::vector<glm::vec3> m_pixels;

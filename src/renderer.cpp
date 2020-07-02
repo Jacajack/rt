@@ -3,9 +3,10 @@
 
 using rt::renderer;
 
-renderer::renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolution) :
+renderer::renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolution, const ray_accelerator &accel) :
 	m_scene(&sc),
 	m_camera(&cam),
+	m_accelerator(&accel),
 	m_resolution(resolution),
 	m_pixels(m_resolution.x * m_resolution.y, {0, 0, 0})
 {
@@ -36,7 +37,7 @@ void renderer::sample(int seed)
 
 			// Cast ray
 			rt::ray pixel_ray = m_camera->get_ray(pixel_pos);
-			rt::ray_hit hit = m_scene->cast_ray(pixel_ray);
+			rt::ray_hit hit = m_scene->cast_ray(pixel_ray, *m_accelerator);
 
 			// Clear bounces list
 			bounces.clear();
@@ -48,9 +49,9 @@ void renderer::sample(int seed)
 				bounces.push_back(hit.get_bounce(dist(rng), dist(rng)));
 
 				// Cast the bounced ray
-				hit = m_scene->cast_ray(bounces.back().reflected_ray);
+				hit = m_scene->cast_ray(bounces.back().reflected_ray, *m_accelerator);
 			}
-			while (bounces.size() < 10 && bounces.back().emission == glm::vec3{0.f});
+			while (bounces.size() < 5 && bounces.back().emission == glm::vec3{0.f});
 
 			// Skip if the last hit was not emissive
 			if (bounces.back().emission == glm::vec3{0.f}) continue;

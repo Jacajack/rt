@@ -73,7 +73,6 @@ class scene_object;
 */
 struct ray_hit : public ray_intersection
 {
-	const ray_intersectable *geometry;
 	const abstract_material *material;
 	const scene_object *object;
 
