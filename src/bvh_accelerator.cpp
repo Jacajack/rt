@@ -204,5 +204,5 @@ bool bvh_accelerator::cast_ray(const rt::ray &r, rt::ray_hit &best_hit) const
 
 void bvh_accelerator::build_tree()
 {
-	m_root_node.recursively_subdivide(4);
+	m_root_node.recursively_subdivide(32);
 }
