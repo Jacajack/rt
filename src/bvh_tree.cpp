@@ -46,7 +46,7 @@ void bvh_tree::build_tree()
 		constexpr float ci = 1.0f;
 
 		// Cost of traversal
-		constexpr float ct = 2.0f;
+		constexpr float ct = 24.0f;
 
 		// Best split information - cost, index and axis
 		float best_cost = HUGE_VALF;
@@ -73,81 +73,13 @@ void bvh_tree::build_tree()
 		{
 			sort_in_axis(axis);
 
-			/*
-			if (it->end - it->begin < 2) return;
-
-			std::multiset<float> lx, ly, lz;
-			std::multiset<float> rx, ry, rz;
-
-			for (auto p = it->begin; p != it->end; p++)
-			{
-				aabb box = p->get_aabb();
-				rx.insert(box.get_min().x);
-				rx.insert(box.get_max().x);
-				ry.insert(box.get_min().y);
-				ry.insert(box.get_max().y);
-				rz.insert(box.get_min().z);
-				rz.insert(box.get_max().z);
-			}
-			*/
-
 			// Cost calculation for each possible split
 			for (auto split = it->begin; split != it->end - 1; split++)
 			{
 				int nl = split - it->begin;
 				int nr = it->end - split;
 
-				/*
-				aabb box = split->get_aabb();
-
-
-				// Add to the left box
-				lx.insert(box.get_min().x);
-				lx.insert(box.get_max().x);
-				ly.insert(box.get_min().y);
-				ly.insert(box.get_max().y);
-				lz.insert(box.get_min().z);
-				lz.insert(box.get_max().z);
-
-				// Remove from the right box
-				rx.erase(rx.lower_bound(box.get_min().x));
-				rx.erase(rx.lower_bound(box.get_max().x));
-				ry.erase(ry.lower_bound(box.get_min().y));
-				ry.erase(ry.lower_bound(box.get_max().y));
-				rz.erase(rz.lower_bound(box.get_min().z));
-				rz.erase(rz.lower_bound(box.get_max().z));
-
-				// Get min and max in the left box and the right box
-				glm::vec3 lmin{
-					*lx.begin(),
-					*ly.begin(),
-					*ly.begin()
-				};
-
-				glm::vec3 lmax{
-					*lx.rbegin(),
-					*ly.rbegin(),
-					*ly.rbegin()
-				};
-
-				glm::vec3 rmin{
-					*rx.begin(),
-					*ry.begin(),
-					*ry.begin()
-				};
-
-				glm::vec3 rmax{
-					*rx.rbegin(),
-					*ry.rbegin(),
-					*ry.rbegin()
-				};
-
-				aabb boxl{lmin, lmax}, boxr{rmin, rmax};
-				*/
-				
-				
-				// aabb boxl{it->begin->get_aabb()}, boxr{split->get_aabb()};
-				aabb boxl{{0, 0, 0}, {0, 0, 0}}, boxr{{0, 0, 0}, {0, 0, 0}};
+				aabb boxl{it->begin->get_aabb()}, boxr{split->get_aabb()};
 
 				// Calculate left bounding volume after split
 				for (auto p = it->begin; p != split; p++)
@@ -184,7 +116,9 @@ void bvh_tree::build_tree()
 		sort_in_axis(best_axis);
 		auto split = it->begin + best_split;
 		
+		std::cout << "splitting " << split - it->begin << " to " << it->end - split << std::endl;
 		std::cout << "tree index: " << it.get_tree_index() << std::endl;
+		std::cout << "primitives: " << it->end - it->begin << std::endl;
 
 		// Create children and remove triangles from this node
 		it.left().emplace(it->begin, split);

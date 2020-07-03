@@ -62,6 +62,11 @@ public:
 		return center;
 	}
 
+	const float get_surface_area() const
+	{
+		return 2.f * (size.x * size.y + size.x * size.z + size.z * size.y);
+	}
+
 private:
 	glm::vec3 min;
 	glm::vec3 max;
