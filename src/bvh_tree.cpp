@@ -46,7 +46,7 @@ void bvh_tree::build_tree()
 		constexpr float ci = 1.0f;
 
 		// Cost of traversal
-		constexpr float ct = 24.0f;
+		constexpr float ct = 32.0f;
 
 		// Best split information - cost, index and axis
 		float best_cost = HUGE_VALF;
@@ -178,10 +178,7 @@ bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 		// and do not traverse further
 		if (node->begin != node->end)
 		{
-			for (auto p = node->begin; p != node->end; p++)
-				if (p->cast_ray(r, h))
-					best_hit = std::min(best_hit, h);
-
+			best_hit = std::min(best_hit, soup_triangle::intersect_triangles(node->begin, node->end, r, best_hit.distance));
 			continue;
 		}
 
