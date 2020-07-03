@@ -121,59 +121,19 @@ inline bool aabb::check_ray_intersect(const ray &r) const
 
 /**
 	Returns closest distance to ray-box intersection. Returns HUGE_VALF on miss
+
+	Based on: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 */
 inline float aabb::ray_intersection_distance(const ray &r) const
 {
-	// The intersection point
-	float t = HUGE_VALF;
+	glm::vec3 a{(min - r.origin) / r.direction};
+	glm::vec3 b{(max - r.origin) / r.direction};
 
-	// Transfrom into AABB coordinate system
-	glm::vec3 d{r.direction};
-	glm::vec3 o{r.origin - get_center()};
-	const glm::vec3 &half{get_half_size()};
+	float tmin = std::max(std::max(std::min(a.x, b.x), std::min(a.y, b.y)), std::min(a.z, b.z));
+	float tmax = std::min(std::min(std::max(a.x, b.x), std::max(a.y, b.y)), std::max(a.z, b.z));
 
-	// Mul determines whether the ray is going to be intersected with positive
-	// or negative side of the box.
-	// This thing here is actually significantly faster than 'nice' glm equivalent
-	// glm::vec3 mul{(glm::vec3{glm::lessThan(glm::abs(o), half)} * 2.f - 1.f) * glm::sign(d)};
-	glm::vec3 mul{
-		(std::abs(o.x) < half.x) == (d.x > 0) ? 1.f : -1.f,
-		(std::abs(o.y) < half.y) == (d.y > 0) ? 1.f : -1.f,
-		(std::abs(o.z) < half.z) == (d.z > 0) ? 1.f : -1.f,
-	};
-
-	// Calculate distances to plane intersections
-	// Undefined behavior for rays parallel to axes? Maybe.
-	glm::vec3 T{(half * mul - o) / d};
-	
-	// For each side, calculate intersection and check if it lies within the box 
-	glm::vec3 p;
-	
-	if (T.x > 0)
-	{
-		p.y = o.y + d.y * T.x;
-		p.z = o.z + d.z * T.x;
-		if (std::abs(p.y) < half.y && std::abs(p.z) < half.z) 
-			t = T.x;
-	}
-
-	if (T.y > 0)
-	{
-		p.x = o.x + d.x * T.y;
-		p.z = o.z + d.z * T.y;
-		if (std::abs(p.x) < half.x && std::abs(p.z) < half.z) 
-			t = std::min(t, T.y);
-	}
-
-	if (T.z > 0)
-	{
-		p.x = o.x + d.x * T.z;
-		p.y = o.y + d.y * T.z;
-		if (std::abs(p.y) < half.y && std::abs(p.x) < half.x) 
-			t = std::min(t, T.z);
-	}
-
-	return t;
+	if (tmax < 0 || tmin > tmax) return HUGE_VALF;
+	else return tmin;
 }
 
 /**
