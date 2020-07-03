@@ -18,6 +18,7 @@
 #include "aabb.hpp"
 #include "primitive_soup.hpp"
 #include "bvh_accelerator.hpp"
+#include "bvh_tree.hpp"
 
 static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, std::mutex *pixel_data_mutex)
 {
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
 
 	// BVH accelerator
 	std::cerr << "building BVH..." << std::endl;
-	rt::bvh_accelerator bvh{rt::primitive_soup{scene}};
+	rt::bvh_tree bvh{rt::primitive_soup{scene}};
 	std::cerr << "done" << std::endl;
 
 
