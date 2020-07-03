@@ -2,6 +2,8 @@
 
 #include <stack>
 #include <queue>
+#include <set>
+#include <iostream>
 
 #include "ray.hpp"
 #include "linear_stack.hpp"
@@ -40,40 +42,150 @@ void bvh_tree::build_tree()
 		auto it = to_process.top();
 		to_process.pop();
 
-		// If the node has less than N triangles, do not subdivide it
-		if (it->end - it->begin <= 32)
+		// Cost of triangle intersection
+		constexpr float ci = 1.0f;
+
+		// Cost of traversal
+		constexpr float ct = 2.0f;
+
+		// Best split information - cost, index and axis
+		float best_cost = HUGE_VALF;
+		float glm::vec3::* best_axis;
+		int best_split = 0;
+
+		// Parent bounding box surface area and triangle count
+		float Sp = it->bounding_volume.get_surface_area();
+		int np = it->end - it->begin;
+
+		// Sorts elements in given axis
+		auto sort_in_axis = [&](float glm::vec3::* axis){
+			std::sort(it->begin, it->end, [&](auto &t1, auto &t2){
+				glm::vec3 c1 = (t1.vertices[0] + t1.vertices[1] + t1.vertices[2]) / 3.f;
+				glm::vec3 c2 = (t2.vertices[0] + t2.vertices[1] + t2.vertices[2]) / 3.f;
+				return c1.*axis < c2.*axis;
+			});
+		};
+
+		
+
+		// Calculates all possible split costs for given axis 
+		auto find_best_split = [&](float glm::vec3::* axis)
+		{
+			sort_in_axis(axis);
+
+			/*
+			if (it->end - it->begin < 2) return;
+
+			std::multiset<float> lx, ly, lz;
+			std::multiset<float> rx, ry, rz;
+
+			for (auto p = it->begin; p != it->end; p++)
+			{
+				aabb box = p->get_aabb();
+				rx.insert(box.get_min().x);
+				rx.insert(box.get_max().x);
+				ry.insert(box.get_min().y);
+				ry.insert(box.get_max().y);
+				rz.insert(box.get_min().z);
+				rz.insert(box.get_max().z);
+			}
+			*/
+
+			// Cost calculation for each possible split
+			for (auto split = it->begin; split != it->end - 1; split++)
+			{
+				int nl = split - it->begin;
+				int nr = it->end - split;
+
+				/*
+				aabb box = split->get_aabb();
+
+
+				// Add to the left box
+				lx.insert(box.get_min().x);
+				lx.insert(box.get_max().x);
+				ly.insert(box.get_min().y);
+				ly.insert(box.get_max().y);
+				lz.insert(box.get_min().z);
+				lz.insert(box.get_max().z);
+
+				// Remove from the right box
+				rx.erase(rx.lower_bound(box.get_min().x));
+				rx.erase(rx.lower_bound(box.get_max().x));
+				ry.erase(ry.lower_bound(box.get_min().y));
+				ry.erase(ry.lower_bound(box.get_max().y));
+				rz.erase(rz.lower_bound(box.get_min().z));
+				rz.erase(rz.lower_bound(box.get_max().z));
+
+				// Get min and max in the left box and the right box
+				glm::vec3 lmin{
+					*lx.begin(),
+					*ly.begin(),
+					*ly.begin()
+				};
+
+				glm::vec3 lmax{
+					*lx.rbegin(),
+					*ly.rbegin(),
+					*ly.rbegin()
+				};
+
+				glm::vec3 rmin{
+					*rx.begin(),
+					*ry.begin(),
+					*ry.begin()
+				};
+
+				glm::vec3 rmax{
+					*rx.rbegin(),
+					*ry.rbegin(),
+					*ry.rbegin()
+				};
+
+				aabb boxl{lmin, lmax}, boxr{rmin, rmax};
+				*/
+				
+				
+				// aabb boxl{it->begin->get_aabb()}, boxr{split->get_aabb()};
+				aabb boxl{{0, 0, 0}, {0, 0, 0}}, boxr{{0, 0, 0}, {0, 0, 0}};
+
+				// Calculate left bounding volume after split
+				for (auto p = it->begin; p != split; p++)
+					boxl = aabb{boxl, p->get_aabb()};
+
+				// Calculate right bounding volume after split
+				for (auto p = split; p != it->end; p++)
+					boxr = aabb{boxr, p->get_aabb()};
+							
+
+				float Sl = boxl.get_surface_area();
+				float Sr = boxr.get_surface_area();
+
+				float c = ct + Sl / Sp * nl * ci + Sr / Sp * nr * ci;
+				if (c < best_cost)
+				{
+					best_cost = c;
+					best_split = split - it->begin;
+					best_axis = axis;
+				}
+			}
+		};
+
+		// Find best split point in all axes
+		find_best_split(&glm::vec3::x);
+		find_best_split(&glm::vec3::y);
+		find_best_split(&glm::vec3::z);
+
+		// Compare best split cost to 'leaving as is' cost
+		if (best_cost > np * ci)
 			continue;
 
-		// Get center and size of the node's bounding volume
-		glm::vec3 volsize{it->bounding_volume.get_size()};
-		glm::vec3 volcenter{it->bounding_volume.get_center()};
-
-		// Decide split direction
-		float glm::vec3::* axis;
-		if (volsize.x > volsize.y && volsize.x > volsize.z)
-			axis = &glm::vec3::x;
-		else if (volsize.y > volsize.x && volsize.y > volsize.z)
-			axis = &glm::vec3::y;
-		else
-			axis = &glm::vec3::z;
-
-		// Sort the triangles based on the selected component
-		// \todo Do not calculate AABBs over and over!!! Store triangles along with their centroids!
-		std::sort(it->begin, it->end, [&](auto &t1, auto &t2){
-			glm::vec3 c1 = (t1.vertices[0] + t1.vertices[1] + t1.vertices[2]) / 3.f;
-			glm::vec3 c2 = (t2.vertices[0] + t2.vertices[1] + t2.vertices[2]) / 3.f;
-			return c1.*axis < c2.*axis;
-		});
-
-		// Attempt midpoint split
-		auto split = std::lower_bound(it->begin, it->end, volcenter.*axis, [&](auto &t1, auto c){
-			return ((t1.vertices[0] + t1.vertices[1] + t1.vertices[2]) / 3.f).*axis < c;
-		});
-
-		// If any child is empty, attempt median split
-		if (split == it->end || split == it->begin)
-			split = it->begin + (it->end - it->begin) / 2;
+		// Sort the elements in the best axis
+		sort_in_axis(best_axis);
+		auto split = it->begin + best_split;
 		
+		std::cout << "tree index: " << it.get_tree_index() << std::endl;
+
 		// Create children and remove triangles from this node
 		it.left().emplace(it->begin, split);
 		it.right().emplace(split, it->end);
