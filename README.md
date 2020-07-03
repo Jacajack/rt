@@ -4,9 +4,13 @@ Another excercise in programming...
 
 <hr>
 
+2020-07-02 - Model importing, basic BVH acceleration:<br>
+<img src=screens/2020-07-02-1.png /><br>
+~250 samples, 4.840s per sample
+
 2020-07-01 - Still trying to get PBR right...:<br>
 <img src=screens/2020-07-01-2.png /><br>
-2000+ samples, 0.905ms per sample
+2000+ samples, 905ms per sample
 <img src=screens/2020-07-01-1.png /><br>
 ~1400 samples, 320.4ms per sample
 
