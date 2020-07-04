@@ -46,7 +46,7 @@ void bvh_tree::build_tree()
 		constexpr float ci = 1.0f;
 
 		// Cost of traversal
-		constexpr float ct = 32.0f;
+		constexpr float ct = 4.0f;
 
 		// Best split information - cost, index and axis
 		float best_cost = HUGE_VALF;
@@ -71,6 +71,8 @@ void bvh_tree::build_tree()
 		{
 			sort_in_axis(axis);
 			aabb_collection lcol, rcol(it->begin, it->end);
+
+			// if (it->end - it->begin < 4) return;
 
 			// Cost calculation for each possible split
 			for (auto split = it->begin; split != it->end - 1; split++)
@@ -218,7 +220,8 @@ bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 			}
 			else // Only check the closer one
 			{
-				if (tl > tr)
+				// This is still fishy....
+				if (tl < tr)
 					intersections.emplace(node.left(), tl);
 				else
 					intersections.emplace(node.right(), tr);
