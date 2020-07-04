@@ -1,9 +1,11 @@
 #pragma once
 
+#include <set>
 #include <algorithm>
 #include <cmath>
 #include "glm/glm.hpp"
 #include "ray.hpp"
+#include <stdexcept>
 
 namespace rt {
 
@@ -148,6 +150,96 @@ class aabb_provider
 {
 public:
 	virtual aabb get_aabb() const = 0;
+};
+
+/**
+	Meant for computing AABB of smaller boundig boxes.
+
+	\warning Based on direct float comparisons. Provided values
+	should be always the same and not calculated each time.
+*/
+class aabb_collection : public aabb_provider
+{
+public:
+	aabb_collection() = default;
+
+	template <typename T>
+	aabb_collection(T begin, T end)
+	{
+		// static_assert(std::is_base_of_v<aabb_provider, *T>);
+
+		for (auto it = begin; it != end; ++it)
+		{
+			auto min = it->get_aabb().get_min();
+			auto max = it->get_aabb().get_max();
+			
+			m_x.insert(min.x);
+			m_y.insert(min.y);
+			m_z.insert(min.z);
+
+			m_x.insert(max.x);
+			m_y.insert(max.y);
+			m_z.insert(max.z);
+		}
+	}
+
+	void push(const aabb &box)
+	{
+		m_x.insert(box.get_min().x);
+		m_y.insert(box.get_min().y);
+		m_z.insert(box.get_min().z);
+
+		m_x.insert(box.get_max().x);
+		m_y.insert(box.get_max().y);
+		m_z.insert(box.get_max().z);
+	}
+
+	void pop(const aabb &box)
+	{
+		if (m_x.empty() || m_y.empty() || m_z.empty())
+			throw std::out_of_range("pop() called on (at least partially) empty aabb_collection");
+
+		auto min_x_it = m_x.find(box.get_min().x);
+		auto min_y_it = m_y.find(box.get_min().y);
+		auto min_z_it = m_z.find(box.get_min().z);
+		auto max_x_it = m_x.find(box.get_max().x);
+		auto max_y_it = m_y.find(box.get_max().y);
+		auto max_z_it = m_z.find(box.get_max().z);
+
+		if (	min_x_it == m_x.end() || min_y_it == m_y.end() || min_z_it == m_z.end()
+			||	max_x_it == m_x.end() || max_y_it == m_y.end() || max_z_it == m_z.end())
+			throw std::out_of_range("popped invalid value from aabb_collection");
+		
+		m_x.erase(min_x_it);
+		m_y.erase(min_y_it);
+		m_z.erase(min_z_it);
+		m_x.erase(max_x_it);
+		m_y.erase(max_y_it);
+		m_z.erase(max_z_it);
+	}
+
+	aabb get_aabb() const override
+	{
+		if (m_x.empty() || m_y.empty() || m_z.empty())
+			throw std::out_of_range("get_aabb() called on (at least partially) empty aabb_collection");
+
+		glm::vec3 min{
+			*m_x.begin(),
+			*m_y.begin(),
+			*m_z.begin()
+		};
+
+		glm::vec3 max{
+			*m_x.rbegin(),
+			*m_y.rbegin(),
+			*m_z.rbegin()
+		};
+
+		return aabb{min, max};
+	}
+
+private:
+	std::multiset<float> m_x, m_y, m_z;
 };
 
 }

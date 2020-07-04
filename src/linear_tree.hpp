@@ -4,6 +4,7 @@
 #include <optional>
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 namespace rt {
 
@@ -38,8 +39,11 @@ public:
 	*/
 	void set_height(int height)
 	{
+		if (height > 25)
+			throw std::overflow_error("linear_tree overflow - just for safety");
+
 		m_height = height;
-		m_nodes.resize(std::pow(2, height - 1));
+		m_nodes.resize(1 << (height - 1));
 	}
 
 	/**
@@ -47,8 +51,7 @@ public:
 	*/
 	void grow_layer()
 	{
-		m_height++;
-		m_nodes.resize(m_nodes.size() * 2);
+		set_height(m_height + 1);
 	}
 
 	/**
@@ -160,9 +163,6 @@ public:
 			// can_emplace() would have returned false (lack of parent)
 			if (m_index >= m_tree->m_nodes.size())
 				m_tree->grow_layer();
-
-			if (m_index >= m_tree->m_nodes.size())
-				throw std::out_of_range("emplace() failed?");
 
 
 			m_tree->m_nodes.at(m_index).emplace(std::forward<Args>(args)...);

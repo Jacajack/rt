@@ -13,10 +13,12 @@ namespace rt {
 struct soup_primitive
 {
 	soup_primitive(const scene_object *obj) :
-		object(obj)
+		material(&obj->get_material())
+		// object(obj)
 	{}
 
-	const scene_object *object;
+	const abstract_material *material;
+	// const scene_object *object;
 };
 
 struct soup_triangle : public triangle, public soup_primitive
@@ -35,8 +37,8 @@ struct soup_triangle : public triangle, public soup_primitive
 			hit.direction = isec.direction;
 			hit.distance = isec.distance;
 			hit.normal = isec.normal;
-			hit.material = &object->get_material();
-			hit.object = object;
+			hit.material = material;
+			// hit.object = object;
 			return true;
 		}
 
@@ -98,8 +100,8 @@ struct soup_triangle : public triangle, public soup_primitive
 			hit.direction = r.direction;
 			hit.position = r.origin + best_t * r.direction;
 			hit.normal = glm::normalize(best_p->normals[0] * (1.f - best_u - best_v) + best_p->normals[1] * best_u + best_p->normals[2] * best_v);
-			hit.material = &best_p->object->get_material();
-			hit.object = best_p->object;
+			hit.material = best_p->material;
+			// hit.object = best_p->object;
 		}
 		else
 		{
@@ -125,8 +127,8 @@ struct soup_sphere : public sphere, public soup_primitive
 			hit.direction = isec.direction;
 			hit.distance = isec.distance;
 			hit.normal = isec.normal;
-			hit.material = &object->get_material();
-			hit.object = object;
+			hit.material = material;
+			// hit.object = object;
 			return true;
 		}
 
@@ -150,8 +152,8 @@ struct soup_plane : public plane, public soup_primitive
 			hit.direction = isec.direction;
 			hit.distance = isec.distance;
 			hit.normal = isec.normal;
-			hit.material = &object->get_material();
-			hit.object = object;
+			hit.material = material;
+			// hit.object = object;
 			return true;
 		}
 

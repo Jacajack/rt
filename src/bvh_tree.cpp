@@ -16,14 +16,14 @@ bvh_tree_node::bvh_tree_node(soup_triangle *b, soup_triangle *e) :
 	begin(b),
 	end(e)
 {
-	aabb vol({0, 0, 0}, {0, 0, 0});
-	for (auto p = b; p && p != e; p++)
+	aabb vol{b->get_aabb()};
+	for (auto p = b + 1; p < e; p++)
 		vol = aabb{vol, p->get_aabb()};
 	bounding_volume = vol;
 }
 
 bvh_tree::bvh_tree(const rt::primitive_soup &soup) :
-	m_tree(14),
+	m_tree(4),
 	m_triangles(soup.triangles),
 	m_spheres(soup.spheres),
 	m_planes(soup.planes)
@@ -66,38 +66,32 @@ void bvh_tree::build_tree()
 			});
 		};
 
-		
-
 		// Calculates all possible split costs for given axis 
 		auto find_best_split = [&](float glm::vec3::* axis)
 		{
 			sort_in_axis(axis);
+			aabb_collection lcol, rcol(it->begin, it->end);
 
 			// Cost calculation for each possible split
 			for (auto split = it->begin; split != it->end - 1; split++)
 			{
-				int nl = split - it->begin;
-				int nr = it->end - split;
+				lcol.push(split->get_aabb());
+				rcol.pop(split->get_aabb());
+				int nl = split - it->begin + 1;
+				int nr = it->end - split - 1;
 
-				aabb boxl{it->begin->get_aabb()}, boxr{split->get_aabb()};
+				aabb boxl{lcol.get_aabb()}, boxr{rcol.get_aabb()};
 
-				// Calculate left bounding volume after split
-				for (auto p = it->begin; p != split; p++)
-					boxl = aabb{boxl, p->get_aabb()};
-
-				// Calculate right bounding volume after split
-				for (auto p = split; p != it->end; p++)
-					boxr = aabb{boxr, p->get_aabb()};
-							
-
+				// Box surfaces
 				float Sl = boxl.get_surface_area();
 				float Sr = boxr.get_surface_area();
 
+				// Calculate split cost
 				float c = ct + Sl / Sp * nl * ci + Sr / Sp * nr * ci;
 				if (c < best_cost)
 				{
 					best_cost = c;
-					best_split = split - it->begin;
+					best_split = split - it->begin + 1; // Mind this +1!
 					best_axis = axis;
 				}
 			}
@@ -115,14 +109,20 @@ void bvh_tree::build_tree()
 		// Sort the elements in the best axis
 		sort_in_axis(best_axis);
 		auto split = it->begin + best_split;
-		
-		std::cout << "splitting " << split - it->begin << " to " << it->end - split << std::endl;
-		std::cout << "tree index: " << it.get_tree_index() << std::endl;
-		std::cout << "primitives: " << it->end - it->begin << std::endl;
 
-		// Create children and remove triangles from this node
-		it.left().emplace(it->begin, split);
-		it.right().emplace(split, it->end);
+		/*
+			Create children and remove triangles from this node
+
+			Passing pointers by value here is very important. Otherwise they will
+			be passed by reference to the part of tree that might get invalidated
+			if it grows.
+
+			I fucking wasted like 3 hours here...
+		*/
+		rt::soup_triangle *b = it->begin;
+		rt::soup_triangle *e = it->end;
+		it.left().emplace(b, split);
+		it.right().emplace(split, e);
 		it->begin = nullptr;
 		it->end = nullptr;
 
