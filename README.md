@@ -4,7 +4,7 @@ Another excercise in programming...
 
 <hr>
 
-2070-07-04 - optimized and tweaked BVH tree acceleration:<br>
+2020-07-04 - optimized and tweaked BVH tree acceleration:<br>
 <img src=screens/2020-07-04-1.png /><br>
 ~3800 samples, 0.759s per sample
 
