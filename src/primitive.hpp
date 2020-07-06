@@ -6,30 +6,29 @@
 /**
 	\file primitive.hpp
 
-	Primitives used in the path tracing process.
+	Primitives used in the path tracing process - spheres, planes and triangles.
+
+	Each primitive class must satisfy following conditions:
+		- must provide ray_intersect() member function to check intersections
+		- must provide get_aabb() member function returning primitive's bounding box
+		- must provide get_ray_hit() member function used for converting ray_intersection to ray_hit 
+		- must contain pointer to abstract_material class
+	
+	Some of these requirements are enforced by the primitive base class.
+	I'm not going to use virtual functions here, because they hurt performance (a couple of ms for each sample).
+
+	get_ray_hit() provides full hit information based on previously acquired ray_intersection.
+	ray_intersection passed as an argument must come from the very same primitive.
 */
 
 namespace rt {
 
 /**
-	Base class for primitives - every primitive must be
-	ray_intersectible, be able to provide its AABB and
-	material pointer.
-
-	Get_ray_hit provides full hit information
-	based on previously acquired ray_intersection.
+	Non-abstract base class for all primitives (perf reasons).
+	It's only mean to implement material pointer and 
 */
-struct primitive : public ray_intersectable, public aabb_provider
+struct primitive
 {
-	/**
-		This function can only be called if the ray_intersection provided
-		is a result of ray_intersect call on this primitive with the same ray r.
-		Moreover, isec.distance must not be rt::ray_miss
-	*/
-	virtual inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const = 0;
-
-	virtual ~primitive() = default;
-
 	const abstract_material *material = nullptr;
 };
 
@@ -47,9 +46,9 @@ struct sphere : public primitive
 	{}
 
 	static inline const sphere *ray_intersect(const sphere *begin, const sphere *end, const ray &r, ray_intersection &isec);
-	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
-	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const override;
-	inline aabb get_aabb() const override;
+	inline bool ray_intersect(const ray &r, ray_intersection &hit) const;
+	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const;
+	inline aabb get_aabb() const;
 	inline sphere transform(const glm::mat4 &mat) const;
 	
 	glm::vec3 origin;
@@ -159,9 +158,9 @@ struct plane : public primitive
 	{}
 
 	static inline const plane *ray_intersect(const plane *begin, const plane *end, const ray &r, ray_intersection &isec);
-	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
-	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const override;
-	inline aabb get_aabb() const override;
+	inline bool ray_intersect(const ray &r, ray_intersection &hit) const;
+	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const;
+	inline aabb get_aabb() const;
 	inline plane transform(const glm::mat4 &mat) const;
 
 	glm::vec3 origin;
@@ -245,15 +244,15 @@ inline plane plane::transform(const glm::mat4 &mat) const
 */
 struct triangle : public primitive
 {
+	static inline const triangle *ray_intersect(const triangle *begin, const triangle *end, const ray &r, ray_intersection &isec);
+	inline bool ray_intersect(const ray &r, ray_intersection &isec) const;
+	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const;
+	inline aabb get_aabb() const;
+	inline triangle transform(const glm::mat4 &mat) const;
+
 	glm::vec3 vertices[3];
 	glm::vec3 normals[3];
 	glm::vec2 uvs[3];
-
-	static inline const triangle *ray_intersect(const triangle *begin, const triangle *end, const ray &r, ray_intersection &isec);
-	inline bool ray_intersect(const ray &r, ray_intersection &isec) const override;
-	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const override;
-	inline aabb get_aabb() const override;
-	inline triangle transform(const glm::mat4 &mat) const;
 };
 
 /**
