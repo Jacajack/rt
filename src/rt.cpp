@@ -17,7 +17,6 @@
 #include "triangle_mesh.hpp"
 #include "aabb.hpp"
 #include "primitive_soup.hpp"
-#include "bvh_accelerator.hpp"
 #include "bvh_tree.hpp"
 
 static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, std::mutex *pixel_data_mutex)

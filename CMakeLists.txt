@@ -56,5 +56,5 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/pbr_material.cpp"
 	"${PROJECT_SOURCE_DIR}/triangle_mesh.cpp"
 	"${PROJECT_SOURCE_DIR}/primitive_soup.cpp"
-	"${PROJECT_SOURCE_DIR}/bvh_accelerator.cpp"
+	"${PROJECT_SOURCE_DIR}/bvh_tree.cpp"
 )
