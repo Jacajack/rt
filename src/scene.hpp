@@ -4,6 +4,9 @@
 #include "ray.hpp"
 #include "material.hpp"
 #include "ray_accelerator.hpp"
+#include "primitive_collection.hpp"
+
+#include "materials/simple_sky.hpp"
 
 namespace rt {
 
@@ -13,44 +16,65 @@ namespace rt {
 class scene_object
 {
 public:
-	scene_object(ray_intersectable &geometry, abstract_material &mat) :
-		m_geometry(&geometry),
-		m_material(&mat)
+	scene_object(const primitive_collection &primitives, const abstract_material &mat) :
+		m_material(&mat),
+		m_primitives(&primitives)
 	{}
 
-	// TEMP
-	const ray_intersectable &get_geometry() const
+	const primitive_collection &get_primitives() const
 	{
-		return *m_geometry;
+		return *m_primitives;
 	}
 
+	/**
+		Returns primitive collection with assigned material and transforms applied
+	*/
+	primitive_collection get_transformed_primitive_collection() const
+	{
+		if (!m_primitives) throw std::runtime_error("object has empty primitive collection");
+
+		primitive_collection col{*m_primitives};
+		col.assign_material(m_material);
+		col.apply_transform(m_transform);
+		return col;
+	}
+
+	/**
+		Assigns material to the entire object
+	*/
+	void set_material(const abstract_material *material)
+	{
+		m_material = m_material;
+	}
+
+	/**
+		Returns currently used material
+	*/
 	const abstract_material &get_material() const
 	{
 		return *m_material;
 	}
 
-private:
-	ray_intersectable *m_geometry; //! \todo replace with pretransformed geometry
-	abstract_material *m_material;
-};
-
-/**
-	A simple sky material that can be used by the scene
-*/
-class simple_sky_material : public abstract_material
-{
-public:
-
-	rt::ray_bounce get_bounce(const ray_hit &hit, float r1, float r2) const override
+	/**
+		Sets model matrix
+	*/
+	void set_transform(const glm::mat4 &mat)
 	{
-		rt::ray_bounce bounce;
-		bounce.brdf = glm::vec3{0.f};
-		bounce.reflection_pdf = 1.f;
-		bounce.btdf = glm::vec3{0.f};
-		// bounce.emission = glm::vec3{0.5, 0.5, 1.0} + 10.f * glm::vec3{std::pow(glm::dot(hit.direction, {0, 1, 0}), 4.f)}; 
-		bounce.emission = glm::mix(glm::vec3{0.3, 0.3, 0.4}, glm::vec3{1.1, 1.0, 2.0}, std::abs(hit.direction.y));
-		return bounce;
+		m_transform = mat;
 	}
+
+	/**
+		Returns currenlty used model matrix
+	*/
+	const glm::mat4 &get_transform() const
+	{
+		return m_transform;
+	}
+
+private:
+	glm::mat4 m_transform = glm::mat4(1.f);
+	const abstract_material *m_material;
+	const primitive_collection *m_primitives = nullptr;
 };
 
 /**
@@ -58,12 +82,14 @@ public:
 */
 class scene
 {
-	friend class primitive_soup;
-
 public:
 	void add_object(scene_object *obj);
 	
-	ray_hit cast_ray(const ray &r) const;
+	const std::vector<scene_object*> &get_objects() const
+	{
+		return m_objects;
+	}
+	
 	ray_hit cast_ray(const ray &r, const ray_accelerator &accel) const;
 
 private:

@@ -18,8 +18,11 @@ set(CXX_FLAGS_DEBUG_LIST
 	"-g"
 	"-DDEBUG"
 	"-fno-omit-frame-pointer"
-	"-fsanitize=address"
+	#  "-fsanitize=address"
 	"-fsanitize=undefined"
+	# "-O3"
+	"-ffast-math"
+	"-march=native"
 #	"-fsanitize=thread"
 )
 string(REPLACE ";" " " CXX_FLAGS_DEBUG_STR "${CXX_FLAGS_DEBUG_LIST}")
@@ -35,6 +38,8 @@ set( CXX_FLAGS_RELEASE_LIST
 	"-ftree-vectorize"
 	"-march=native"
 	"-DNDEBUG"
+	# "-fsanitize=address"
+
 )
 string(REPLACE ";" " " CXX_FLAGS_RELEASE_STR "${CXX_FLAGS_RELEASE_LIST}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_RELEASE_STR}")
@@ -53,8 +58,8 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/camera.cpp"
 	"${PROJECT_SOURCE_DIR}/scene.cpp"
 	"${PROJECT_SOURCE_DIR}/renderer.cpp"
-	"${PROJECT_SOURCE_DIR}/pbr_material.cpp"
-	"${PROJECT_SOURCE_DIR}/triangle_mesh.cpp"
-	"${PROJECT_SOURCE_DIR}/primitive_soup.cpp"
+	"${PROJECT_SOURCE_DIR}/primitive_collection.cpp"
+	"${PROJECT_SOURCE_DIR}/mesh_data.cpp"
 	"${PROJECT_SOURCE_DIR}/bvh_tree.cpp"
+	"${PROJECT_SOURCE_DIR}/materials/pbr_material.cpp"
 )

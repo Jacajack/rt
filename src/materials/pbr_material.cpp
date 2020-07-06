@@ -1,5 +1,5 @@
 #include "pbr_material.hpp"
-#include "utility.hpp"
+#include "../utility.hpp"
 
 using rt::pbr_material;
 

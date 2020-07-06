@@ -2,8 +2,8 @@
 
 #include "linear_tree.hpp"
 #include "ray_accelerator.hpp"
-#include "primitive_soup.hpp"
-#include "aabb.hpp"
+#include "primitive.hpp"
+#include "scene.hpp"
 
 namespace rt {
 
@@ -15,12 +15,12 @@ struct bvh_tree_node
 	/**
 		Adds triangles range to the node and calculates its bounding volume
 	*/
-	bvh_tree_node(soup_triangle *begin, soup_triangle *end);
+	bvh_tree_node(triangle *begin, triangle *end);
 
-	aabb bounding_volume;
 	bool children_overlap;
-	soup_triangle *begin;
-	soup_triangle *end;
+	rt::aabb bounding_volume;
+	rt::triangle *begin;
+	rt::triangle *end;
 };
 
 /**
@@ -29,7 +29,7 @@ struct bvh_tree_node
 class bvh_tree : public ray_accelerator
 {
 public:
-	bvh_tree(const primitive_soup &soup);
+	bvh_tree(const scene &scene);
 	bool cast_ray(const rt::ray &r, ray_hit &hit) const override;
 
 private:
@@ -49,9 +49,9 @@ private:
 	void build_tree();
 
 	linear_tree<bvh_tree_node> m_tree;
-	std::vector<soup_triangle> m_triangles;
-	std::vector<soup_sphere> m_spheres;
-	std::vector<soup_plane> m_planes;
+	std::vector<triangle> m_triangles;
+	std::vector<sphere> m_spheres;
+	std::vector<plane> m_planes;
 };
 
 }

@@ -13,11 +13,11 @@
 #include "primitive.hpp"
 #include "scene.hpp"
 #include "renderer.hpp"
-#include "pbr_material.hpp"
-#include "triangle_mesh.hpp"
+#include "mesh_data.hpp"
 #include "aabb.hpp"
-#include "primitive_soup.hpp"
 #include "bvh_tree.hpp"
+
+#include "materials/pbr_material.hpp"
 
 static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, std::mutex *pixel_data_mutex)
 {
@@ -83,44 +83,44 @@ int main(int argc, char **argv)
 	rt::pbr_material mirror_mat{{0.8f, 0.8f, 0.8f}, 0.05f, 1.0f};
 
 	// Test sphere and floor
-	rt::sphere s{{0, 2, 0}, 2};
-	rt::sphere s2{{3, 1, 1}, 1};
+	rt::primitive_collection s{rt::sphere{{0, 2, 0}, 2}};
+	rt::primitive_collection s2{rt::sphere{{3, 1, 1}, 1}};
 	rt::scene_object sphere_obj{s, red_mat};
 	rt::scene_object sphere2_obj{s2, green_mat};
 	// scene.add_object(&sphere_obj);
 	scene.add_object(&sphere2_obj);
-	rt::plane p{{0, 0, 0}, {0, 1, 0}};
+	rt::primitive_collection p{rt::plane{{0, 0, 0}, {0, 1, 0}}};
 	rt::scene_object plane_obj{p, white_mat};
 	scene.add_object(&plane_obj);
 
 	// Glowing sphere
-	rt::sphere s3{{1.5, 0.5, 3}, 0.5};
+	rt::primitive_collection s3{rt::sphere{{1.5, 0.5, 3}, 0.5}};
 	rt::scene_object sphere3_obj{s3, glow_mat};
 	scene.add_object(&sphere3_obj);
 
 	// Mirror sphere
-	rt::sphere s4{{-1.5, 0.5, 3}, 0.5};
+	rt::primitive_collection s4{rt::sphere{{-1.5, 0.5, 3}, 0.5}};
 	rt::scene_object sphere4_obj{s4, mirror_mat};
 	scene.add_object(&sphere4_obj);
 
 	// Golden sphere
-	rt::sphere s5{{5, 3, -4}, 3};
+	rt::primitive_collection s5{rt::sphere{{5, 3, -4}, 3}};
 	rt::scene_object sphere5_obj{s5, gold_mat};
 	scene.add_object(&sphere5_obj);
 
 	// Back wall
 	rt::plane wall_b{{0, 0, -8}, {0, 0, 1}};
-	rt::scene_object wall_b_obj{wall_b, white_mat};
+	rt::scene_object wall_b_obj{rt::primitive_collection{wall_b}, white_mat};
 	// scene.add_object(&wall_b_obj);
 
 	// Left wall
 	rt::plane wall_l{{-4, 0, 0}, {1, 0, 0}};
-	rt::scene_object wall_l_obj{wall_l, green_mat};
+	rt::scene_object wall_l_obj{rt::primitive_collection{wall_l}, green_mat};
 	// scene.add_object(&wall_l_obj);
 
 	// Right wall
 	rt::plane wall_r{{5, 0, 0}, {-1, 0, 0}};
-	rt::scene_object wall_r_obj{wall_r, red_mat};
+	rt::scene_object wall_r_obj{rt::primitive_collection{wall_r}, red_mat};
 	// scene.add_object(&wall_r_obj);
 
 	// Test tri
@@ -131,27 +131,30 @@ int main(int argc, char **argv)
 	tri.normals[0] = glm::normalize(glm::cross(tri.vertices[0] - tri.vertices[1], tri.vertices[0] - tri.vertices[2]));
 	tri.normals[1] = glm::normalize(glm::cross(tri.vertices[0] - tri.vertices[1], tri.vertices[0] - tri.vertices[2]));
 	tri.normals[2] = glm::normalize(glm::cross(tri.vertices[0] - tri.vertices[1], tri.vertices[0] - tri.vertices[2]));
-	rt::scene_object tri_obj{tri, mirror_mat};
+	// rt::scene_object tri_obj{tri, mirror_mat};
 	// scene.add_object(&tri_obj);
 
 	// Test mesh
-	rt::triangle_mesh monkey("monkey.obj");
-	rt::scene_object monkey_obj{monkey, red_mat};
+	rt::mesh_data monkey("bunny.obj");
+	rt::primitive_collection monkey_pc{monkey};
+	rt::scene_object monkey_obj{monkey_pc, red_mat};
+	std::cout << monkey_pc.triangles.size() << std::endl;
+	// rt::scene_object monkey_obj{rt::primitive_collection{monkey}, red_mat};
 	scene.add_object(&monkey_obj);
 
-	rt::aabb a({-1, 1, -1}, {1, 10, 1});
-	rt::scene_object a_obj{a, red_mat};
+	// rt::aabb a({-1, 1, -1}, {1, 10, 1});
+	// rt::scene_object a_obj{a, red_mat};
 	// scene.add_object(&a_obj);
 
 	// BVH accelerator
 	std::cerr << "building BVH..." << std::endl;
-	rt::bvh_tree bvh{rt::primitive_soup{scene}};
+	rt::bvh_tree bvh{scene};
 	std::cerr << "done" << std::endl;
 
 
 	// Camera setup
-	rt::camera cam({0, 3, 5}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
-	cam.look_at(s.origin);
+	rt::camera cam({0, 1, -2}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
+	cam.look_at({0, 0.5, 0});
 
 	// Renderer
 	rt::renderer ren{scene, cam, {width, height}, bvh};

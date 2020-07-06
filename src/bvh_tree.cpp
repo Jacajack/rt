@@ -3,7 +3,6 @@
 #include <stack>
 #include <queue>
 #include <set>
-#include <iostream>
 
 #include "ray.hpp"
 #include "linear_stack.hpp"
@@ -11,7 +10,7 @@
 using rt::bvh_tree;
 using rt::bvh_tree_node;
 
-bvh_tree_node::bvh_tree_node(soup_triangle *b, soup_triangle *e) :
+bvh_tree_node::bvh_tree_node(rt::triangle *b, rt::triangle *e) :
 	children_overlap(true),
 	begin(b),
 	end(e)
@@ -22,12 +21,20 @@ bvh_tree_node::bvh_tree_node(soup_triangle *b, soup_triangle *e) :
 	bounding_volume = vol;
 }
 
-bvh_tree::bvh_tree(const rt::primitive_soup &soup) :
-	m_tree(4),
-	m_triangles(soup.triangles),
-	m_spheres(soup.spheres),
-	m_planes(soup.planes)
+bvh_tree::bvh_tree(const rt::scene &scene) :
+	m_tree(4)
 {
+	//! \todo Improve BVH build process by partitioning entire objects first
+
+	// Unpack and decompose scene
+	for (const auto &obj_ptr : scene.get_objects())
+	{
+		primitive_collection col{obj_ptr->get_transformed_primitive_collection()};
+		std::copy(col.triangles.begin(), col.triangles.end(), std::back_inserter(m_triangles));
+		std::copy(col.spheres.begin(), col.spheres.end(), std::back_inserter(m_spheres));
+		std::copy(col.planes.begin(), col.planes.end(), std::back_inserter(m_planes));
+	}
+
 	m_tree.get_root_node().emplace(m_triangles.data(), m_triangles.data() + m_triangles.size());
 	build_tree();
 }
@@ -121,8 +128,8 @@ void bvh_tree::build_tree()
 
 			I fucking wasted like 3 hours here...
 		*/
-		rt::soup_triangle *b = it->begin;
-		rt::soup_triangle *e = it->end;
+		rt::triangle *b = it->begin;
+		rt::triangle *e = it->end;
 		it.left().emplace(b, split);
 		it.right().emplace(split, e);
 		it->begin = nullptr;
@@ -139,19 +146,25 @@ void bvh_tree::build_tree()
 
 bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 {
-	rt::ray_hit h;
-	best_hit.distance = HUGE_VALF;
+	best_hit.distance = rt::ray_miss;
+
+	// Nearset intersection
+	rt::ray_intersection isec;
+	isec.distance = rt::ray_miss;
 
 	// Check spheres
 	for (const auto &s : m_spheres)
-		if (s.cast_ray(r, h))
-			best_hit = std::min(best_hit, h);
+	{
+		if (s.ray_intersect(r, isec) && isec.distance < best_hit.distance)
+			best_hit = s.get_ray_hit(isec, r);
+	}
 
 	// Check planes
 	for (const auto &p : m_planes)
-		if (p.cast_ray(r, h))
-			best_hit = std::min(best_hit, h);
-
+	{
+		if (p.ray_intersect(r, isec) && isec.distance < best_hit.distance)
+			best_hit = p.get_ray_hit(isec, r);
+	}
 
 	// Intersections with tree nodes
 	rt::linear_stack<node_intersection, 256> intersections;
@@ -168,10 +181,10 @@ bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 	// Process all intersections
 	while (!intersections.empty())
 	{
-		auto isec = intersections.top();
+		auto node_isec = intersections.top();
 		intersections.pop();
-		auto node = isec.node;
-		float t = isec.t;
+		auto node = node_isec.node;
+		float t = node_isec.t;
 
 		// If an intersection was found earlier, closer than this volume itself - skip
 		if (best_hit.distance < t) continue;
@@ -180,7 +193,9 @@ bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 		// and do not traverse further
 		if (node->begin != node->end)
 		{
-			best_hit = std::min(best_hit, soup_triangle::intersect_triangles(node->begin, node->end, r, best_hit.distance));
+			const rt::triangle *tri = rt::triangle::ray_intersect(node->begin, node->end, r, isec);
+			if (tri != nullptr)
+				best_hit = tri->get_ray_hit(isec, r);
 			continue;
 		}
 

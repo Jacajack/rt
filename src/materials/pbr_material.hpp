@@ -1,5 +1,5 @@
 #pragma once
-#include "material.hpp"
+#include "../material.hpp"
 
 namespace rt {
 

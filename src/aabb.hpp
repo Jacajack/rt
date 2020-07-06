@@ -100,18 +100,14 @@ inline bool aabb::check_point_inside(const glm::vec3 &p, float eps) const
 
 /**
 	This is only for compatibilty with other intersectable objects.
-
-	\warning Returned normals are not real
 */
 inline bool aabb::ray_intersect(const ray &r, ray_intersection &hit) const
 {
 	float t = ray_intersection_distance(r);
-	if (t != HUGE_VALF)
+	if (t != rt::ray_miss)
 	{
 		hit.distance = t;
-		hit.position = r.origin + t * r.direction;
-		hit.direction = r.direction;
-		hit.normal = -r.direction;
+		hit.u = hit.v = 0.f;
 		return true;
 	}
 	
@@ -123,7 +119,7 @@ inline bool aabb::ray_intersect(const ray &r, ray_intersection &hit) const
 */
 inline bool aabb::check_ray_intersect(const ray &r) const
 {
-	return ray_intersection_distance(r) != HUGE_VALF;
+	return ray_intersection_distance(r) != rt::ray_miss;
 }
 
 /**
@@ -139,7 +135,7 @@ inline float aabb::ray_intersection_distance(const ray &r) const
 	float tmin = std::max(std::max(std::min(a.x, b.x), std::min(a.y, b.y)), std::min(a.z, b.z));
 	float tmax = std::min(std::min(std::max(a.x, b.x), std::max(a.y, b.y)), std::max(a.z, b.z));
 
-	if (tmax < 0 || tmin > tmax) return HUGE_VALF;
+	if (tmax < 0 || tmin > tmax) return rt::ray_miss;
 	else return tmin;
 }
 

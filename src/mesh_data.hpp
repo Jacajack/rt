@@ -11,28 +11,18 @@
 namespace rt {
 
 /**
-	A collection of triangles 
+	`mesh_data` class stores a collection of triangles read from a model file.
+	The triangles do not have any material assigned
 */
-class triangle_mesh : public ray_intersectable
+class mesh_data
 {
+	friend struct primitive_collection;
+
 public:
 	/**
 		Loads mesh from file using Assimp
 	*/
-	triangle_mesh(const std::string &path);
-
-	/**
-		Provides a brute-force method of finding mesh-ray intersection
-	*/
-	bool ray_intersect(const ray &r, ray_intersection &hit) const override;
-
-	/**
-		Provides read-only access to the triangle data
-	*/
-	const rt::triangle &get_triangle(unsigned int index) const
-	{
-		return m_triangles.at(index);
-	}
+	mesh_data(const std::string &path);
 
 	/**
 		Provides read-only access to the triangle data

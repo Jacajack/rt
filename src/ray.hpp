@@ -19,19 +19,35 @@ struct ray
 	glm::vec3 direction;
 };
 
+
 /**
-	Contains purely geometrical information about ray-object intersection
+	Distance to intersection returned when the ray misses
+*/
+inline constexpr float ray_miss = HUGE_VALF;
+
+/**
+	Contains minimal information about ray-object intersection. This infomation
+	can later be used to generate ray_hit structure containing all infotmation
+	necessary for shading.
 */
 struct ray_intersection
 {
+	//! Distance to the intersection
 	float distance;
-	glm::vec3 direction;
-	glm::vec3 position;
-	glm::vec3 normal;
+
+	/**
+		A helper pair of coordinates, later used for normal and UV calculations.
+	*/
+	float u, v;
 
 	inline bool operator<(const ray_intersection &rhs) const
 	{
 		return distance < rhs.distance;
+	}
+
+	inline bool operator<(float x) const
+	{
+		return distance < x;
 	}
 };
 
@@ -69,12 +85,16 @@ class abstract_material;
 class scene_object;
 
 /**
-	ray_intersection + pointers to material, geometry and object
+	Built from ray_intersection.
 */
-struct ray_hit : public ray_intersection
+struct ray_hit
 {
+	float distance;
+	glm::vec3 position;
+	glm::vec3 direction;
+	glm::vec3 normal;
+
 	const abstract_material *material;
-	const scene_object *object;
 
 	inline bool operator<(const ray_intersection &rhs) const
 	{

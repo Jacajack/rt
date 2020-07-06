@@ -4,7 +4,6 @@
 #include <optional>
 #include <cmath>
 #include <stdexcept>
-#include <iostream>
 
 namespace rt {
 

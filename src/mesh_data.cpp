@@ -1,4 +1,4 @@
-#include "triangle_mesh.hpp"
+#include "mesh_data.hpp"
 
 #include <stdexcept>
 
@@ -7,9 +7,9 @@
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
-using rt::triangle_mesh;
+using rt::mesh_data;
 
-rt::triangle_mesh::triangle_mesh(const std::string &path)
+rt::mesh_data::mesh_data(const std::string &path)
 {
 	Assimp::Importer importer;
 	const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
@@ -21,7 +21,7 @@ rt::triangle_mesh::triangle_mesh(const std::string &path)
 	process_assimp_node(scene, scene->mRootNode);
 }
 
-void triangle_mesh::append_assimp_mesh(aiMesh *mesh)
+void mesh_data::append_assimp_mesh(aiMesh *mesh)
 {
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> normals;
@@ -74,11 +74,13 @@ void triangle_mesh::append_assimp_mesh(aiMesh *mesh)
 			t.uvs[2] = uvs[f.mIndices[2]];
 		}
 
+		t.material = nullptr;
+
 		m_triangles.push_back(t);
 	}
 }
 
-void triangle_mesh::process_assimp_node(const aiScene *scene, aiNode *node)
+void mesh_data::process_assimp_node(const aiScene *scene, aiNode *node)
 {
 	// Process all meshes in this node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -87,19 +89,4 @@ void triangle_mesh::process_assimp_node(const aiScene *scene, aiNode *node)
 	// Process children nodes
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 		process_assimp_node(scene, node->mChildren[i]);
-}
-
-bool triangle_mesh::ray_intersect(const ray &r, ray_intersection &best_hit) const
-{
-	rt::ray_intersection hit;
-	best_hit.distance = HUGE_VALF;
-
-	// Check intersection with all triangles inside
-	for (const auto &t : m_triangles)
-	{
-		if (t.ray_intersect(r, hit))
-			best_hit = std::min(hit, best_hit);
-	}
-
-	return best_hit.distance != HUGE_VALF;
 }
