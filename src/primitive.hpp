@@ -34,6 +34,8 @@ struct primitive : public ray_intersectable, public aabb_provider
 };
 
 /**
+	A sphere defined by its origin and radius.
+
 	\warning Sphere transformations aren't quite perfect - radius is only affected by
 	scaling in the X axis. Hence the spheres should only be scaled uniformly.
 */
@@ -44,6 +46,7 @@ struct sphere : public primitive
 		radius(r)
 	{}
 
+	static inline const sphere *ray_intersect(const sphere *begin, const sphere *end, const ray &r, ray_intersection &isec);
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
 	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const override;
 	inline aabb get_aabb() const override;
@@ -53,40 +56,65 @@ struct sphere : public primitive
 	float radius;
 };
 
-bool sphere::ray_intersect(const ray &r, ray_intersection &hit) const
+/**
+	Checks spheres for intersection with a ray
+
+	\note This function accounts for distance already stored in isec parameter! Farther intersections
+		won't be reported.
+	
+	\returns pointer to the nearset intersected sphere, otherwise nullptr
+*/
+inline const sphere *sphere::ray_intersect(const sphere *begin, const sphere *end, const ray &r, ray_intersection &isec)
 {
-	// t^2 * d * d + t * 2d(o-c) + (o-c)(o-c) - R^2 = 0
-	glm::vec3 u = r.origin - this->origin;
+	const sphere *best_p = nullptr;
 
-	float a = glm::dot(r.direction, r.direction);
-	float b = 2 * glm::dot(r.direction, u);
-	float c = glm::dot(u, u) - this->radius * this->radius;
-	float delta = b * b - 4 * a * c;
-
-	if (delta < 0) return false;
-	else
+	for (const sphere *p = begin; p != end; p++)
 	{
-		// Check whether the ray is cast from inside of the sphere
-		// (if roots have the same sign)
-		if (c * a > 0)
-		{
-			// Only return the closer intersection
-			float t = (-b - std::sqrt(delta)) / (2 * a);
+		// t^2 * d * d + t * 2d(o-c) + (o-c)(o-c) - R^2 = 0
+		glm::vec3 u = r.origin - p->origin;
+		float a = glm::dot(r.direction, r.direction);
+		float b = 2 * glm::dot(r.direction, u);
+		float c = glm::dot(u, u) - p->radius * p->radius;
+		float delta = b * b - 4 * a * c;
 
-			// Reject negative distance (both roots have the same sign)
-			if (t < 0) return false;
-
-			hit.distance = t;
-			return true;
-		}
+		if (delta < 0) continue;
 		else
 		{
-			// We only care about the positive (greater) root
-			float t = (-b + std::sqrt(delta)) / (2 * a);
-			hit.distance = t;
-			return true;
+			// Check whether the ray is cast from inside of the sphere
+			// (if roots have the same sign)
+			if (c * a > 0)
+			{
+				// Only return the closer intersection
+				float t = (-b - std::sqrt(delta)) / (2 * a);
+
+				// Reject negative distance (both roots have the same sign)
+				// and too distant intersections
+				if (t < 0 || t > isec.distance)
+					continue;
+
+				isec.distance = t;
+				best_p = p;
+			}
+			else
+			{
+				// We only care about the positive (greater) root
+				float t = (-b + std::sqrt(delta)) / (2 * a);
+				if (t > isec.distance)
+					continue;
+
+				isec.distance = t;
+				best_p = p;
+			}
 		}
 	}
+
+	return best_p;
+}
+
+bool sphere::ray_intersect(const ray &r, ray_intersection &isec) const
+{
+	isec.distance = rt::ray_miss;
+	return sphere::ray_intersect(this, this + 1, r, isec);
 }
 
 inline ray_hit sphere::get_ray_hit(const ray_intersection &isec, const ray &r) const
@@ -105,6 +133,9 @@ inline aabb sphere::get_aabb() const
 	return aabb{origin - glm::vec3{radius}, origin + glm::vec3{radius}};
 }
 
+/**
+	Returns a new sphere resulting from matrix transformation
+*/
 inline sphere sphere::transform(const glm::mat4 &mat) const
 {
 	rt::sphere p(*this);
@@ -117,8 +148,9 @@ inline sphere sphere::transform(const glm::mat4 &mat) const
 	return p;
 }
 
-
-
+/**
+	Infinite plane defined by origin point and normal vector
+*/
 struct plane : public primitive
 {
 	plane(const glm::vec3 &o, const glm::vec3 &n) :
@@ -126,6 +158,7 @@ struct plane : public primitive
 		normal(n)
 	{}
 
+	static inline const plane *ray_intersect(const plane *begin, const plane *end, const ray &r, ray_intersection &isec);
 	inline bool ray_intersect(const ray &r, ray_intersection &hit) const override;
 	inline ray_hit get_ray_hit(const ray_intersection &isec, const ray &r) const override;
 	inline aabb get_aabb() const override;
@@ -135,24 +168,46 @@ struct plane : public primitive
 	glm::vec3 normal;
 };
 
-bool plane::ray_intersect(const ray &r, ray_intersection &hit) const
+/**
+	Checks planes for intersection with a ray
+
+	\note This function accounts for distance already stored in isec parameter! Farther intersections
+		won't be reported.
+	
+	\returns pointer to the nearset intersected plane, otherwise nullptr
+*/
+inline const plane *plane::ray_intersect(const plane *begin, const plane *end, const ray &r, ray_intersection &isec)
 {
-	float n_dot_dir = glm::dot(this->normal, r.direction);
-	if (n_dot_dir != 0)
+	const rt::plane *best_p = nullptr;
+
+	for (const rt::plane *p = begin; p != end; p++)
 	{
-		float t = glm::dot(this->normal, this->origin - r.origin) / n_dot_dir;
+		float n_dot_dir = glm::dot(p->normal, r.direction);
+		if (n_dot_dir != 0)
+		{
+			float t = glm::dot(p->normal, p->origin - r.origin) / n_dot_dir;
 
-		// Reject negative
-		if (t < 0) return false;
+			// Reject negative and too distant intersections
+			if (t < 0 || t > isec.distance)
+				continue;
 
-		hit.distance = t;
-		return true;
+			isec.distance = t;
+			best_p = p;
+		}
 	}
 
-	// Miss
-	return false;
+	return best_p;
 }
 
+bool plane::ray_intersect(const ray &r, ray_intersection &isec) const
+{
+	isec.distance = rt::ray_miss;
+	return plane::ray_intersect(this, this + 1, r, isec);
+}
+
+/**
+	Computes ray_hit from ray_intersection
+*/
 inline ray_hit plane::get_ray_hit(const ray_intersection &isec, const ray &r) const
 {
 	ray_hit h;
@@ -164,11 +219,17 @@ inline ray_hit plane::get_ray_hit(const ray_intersection &isec, const ray &r) co
 	return h;
 }
 
+/**
+	Returns AABB with -HUGE_VALFs and +HUGE_VALFs
+*/
 inline aabb plane::get_aabb() const
 {
 	return {{-HUGE_VALF, -HUGE_VALF, -HUGE_VALF}, {HUGE_VALF, HUGE_VALF, HUGE_VALF}};
 }
 
+/**
+	Returns plane resulting from matrix transform
+*/
 inline plane plane::transform(const glm::mat4 &mat) const
 {
 	plane p{*this};
@@ -179,7 +240,9 @@ inline plane plane::transform(const glm::mat4 &mat) const
 	return p;
 }
 
-
+/**
+	A triangle primitive defined by 3 vertices, their normals and UVs
+*/
 struct triangle : public primitive
 {
 	glm::vec3 vertices[3];
@@ -250,6 +313,10 @@ bool triangle::ray_intersect(const ray &r, ray_intersection &isec) const
 	return triangle::ray_intersect(this, this + 1, r, isec);
 }
 
+/**
+	Build ray_hit based on ray_intersection. Normal vector calculation
+	is performed here.
+*/
 inline ray_hit triangle::get_ray_hit(const ray_intersection &isec, const ray &r) const
 {
 	ray_hit h;
@@ -261,6 +328,9 @@ inline ray_hit triangle::get_ray_hit(const ray_intersection &isec, const ray &r)
 	return h;
 }
 
+/**
+	Calculates AABB by taking min and max values of all vertices' coordinates
+*/
 inline aabb triangle::get_aabb() const
 {
 	glm::vec3 min{glm::min(vertices[0], glm::min(vertices[1], vertices[2]))};
@@ -268,6 +338,9 @@ inline aabb triangle::get_aabb() const
 	return aabb{min, max};
 }
 
+/**
+	Returns triangle resulting from matrix transfomation
+*/
 inline triangle triangle::transform(const glm::mat4 &mat) const
 {
 	triangle t{*this};

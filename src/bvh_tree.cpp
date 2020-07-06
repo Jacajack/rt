@@ -146,6 +146,7 @@ void bvh_tree::build_tree()
 
 bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 {
+	// Assume miss
 	best_hit.distance = rt::ray_miss;
 
 	// Nearset intersection
@@ -153,18 +154,12 @@ bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 	isec.distance = rt::ray_miss;
 
 	// Check spheres
-	for (const auto &s : m_spheres)
-	{
-		if (s.ray_intersect(r, isec) && isec.distance < best_hit.distance)
-			best_hit = s.get_ray_hit(isec, r);
-	}
+	const rt::sphere *best_sphere = rt::sphere::ray_intersect(m_spheres.data(), m_spheres.data() + m_spheres.size(), r, isec);
+	if (best_sphere) best_hit = best_sphere->get_ray_hit(isec, r);
 
 	// Check planes
-	for (const auto &p : m_planes)
-	{
-		if (p.ray_intersect(r, isec) && isec.distance < best_hit.distance)
-			best_hit = p.get_ray_hit(isec, r);
-	}
+	const rt::plane *best_plane = rt::plane::ray_intersect(m_planes.data(), m_planes.data() + m_planes.size(), r, isec);
+	if (best_plane) best_hit = best_plane->get_ray_hit(isec, r);
 
 	// Intersections with tree nodes
 	rt::linear_stack<node_intersection, 256> intersections;
