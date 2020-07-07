@@ -4,9 +4,13 @@ Another excercise in programming...
 
 <hr>
 
+2020-07-07 - scene object transform:<br>
+<img src=screens/2020-07-07-1.png /><br>
+~808 samples, 0.923s per sample
+
 2020-07-04 - optimized and tweaked BVH tree acceleration:<br>
 <img src=screens/2020-07-04-1.png /><br>
-~3800 samples, 0.759s per sample
+~3800 samples, 0.795s per sample
 
 2020-07-02 - Model importing, basic BVH acceleration:<br>
 <img src=screens/2020-07-02-1.png /><br>
@@ -14,6 +18,7 @@ Another excercise in programming...
 
 2020-07-01 - Still trying to get PBR right...:<br>
 <img src=screens/2020-07-01-2.png /><br>
+<img src=screens/with_blender.png /><br>
 2000+ samples, 905ms per sample
 <img src=screens/2020-07-01-1.png /><br>
 ~1400 samples, 320.4ms per sample
