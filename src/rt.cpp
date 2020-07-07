@@ -8,6 +8,10 @@
 #include <chrono>
 #include <SFML/Graphics.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "ray.hpp"
 #include "camera.hpp"
 #include "primitive.hpp"
@@ -76,19 +80,24 @@ int main(int argc, char **argv)
 
 	// Test material
 	rt::pbr_material red_mat{{0.7, 0.1, 0.1}, 0.1};
+	rt::pbr_material better_red_mat{{0.37, 0.0, 0.0}, 0.05};
 	rt::pbr_material gold_mat{{0.8, 0.4, 0.1}, 0.2, 1.0};
 	rt::pbr_material green_mat{{0.1, 0.6, 0.1}, 0.5};
 	rt::pbr_material white_mat{{0.9, 0.9, 0.9}, 0.5};
 	rt::pbr_material glow_mat{{0.0f, 0.0f, 0.0f}, 1.0f, 0.0f, glm::vec3{100.f}};
 	rt::pbr_material mirror_mat{{0.8f, 0.8f, 0.8f}, 0.05f, 1.0f};
 
-	// Test sphere and floor
+	// Red sphere
 	rt::primitive_collection s{rt::sphere{{0, 2, 0}, 2}};
-	rt::primitive_collection s2{rt::sphere{{3, 1, 1}, 1}};
 	rt::scene_object sphere_obj{s, red_mat};
-	rt::scene_object sphere2_obj{s2, green_mat};
 	// scene.add_object(&sphere_obj);
+
+	// Green sphere
+	rt::primitive_collection s2{rt::sphere{{3, 1, 1}, 1}};
+	rt::scene_object sphere2_obj{s2, green_mat};
 	scene.add_object(&sphere2_obj);
+
+	// Plane
 	rt::primitive_collection p{rt::plane{{0, 0, 0}, {0, 1, 0}}};
 	rt::scene_object plane_obj{p, white_mat};
 	scene.add_object(&plane_obj);
@@ -135,12 +144,23 @@ int main(int argc, char **argv)
 	// scene.add_object(&tri_obj);
 
 	// Test mesh
-	rt::mesh_data monkey("bunny.obj");
+	rt::mesh_data monkey("monkey.obj");
 	rt::primitive_collection monkey_pc{monkey};
 	rt::scene_object monkey_obj{monkey_pc, red_mat};
-	std::cout << monkey_pc.triangles.size() << std::endl;
+	// monkey_obj.set_transform(glm::gtx::translate(0, 1, 0));
+	monkey_obj.set_transform(glm::translate(glm::vec3(1.f, 1.f, 0.f)));
+	// std::cout << monkey_pc.triangles.size() << std::endl;
 	// rt::scene_object monkey_obj{rt::primitive_collection{monkey}, red_mat};
 	scene.add_object(&monkey_obj);
+
+	rt::mesh_data bunny("bunny.obj");
+	rt::primitive_collection bunny_pc{bunny};
+	rt::scene_object bunny_obj{bunny_pc, better_red_mat};
+	bunny_obj.set_transform(glm::translate(glm::vec3(-1.f, 0.f, 1.5f)) * glm::scale(glm::vec3(2.f)));
+	scene.add_object(&bunny_obj);
+
+
+
 
 	// rt::aabb a({-1, 1, -1}, {1, 10, 1});
 	// rt::scene_object a_obj{a, red_mat};
@@ -153,7 +173,7 @@ int main(int argc, char **argv)
 
 
 	// Camera setup
-	rt::camera cam({0, 1, -2}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
+	rt::camera cam({0, 2, 6}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
 	cam.look_at({0, 0.5, 0});
 
 	// Renderer
