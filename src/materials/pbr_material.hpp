@@ -17,7 +17,7 @@ public:
 		m_emission(emission)
 	{}
 
-	rt::ray_bounce get_bounce(const rt::ray_hit &hit, float r1, float r2) const override;
+	rt::ray_bounce get_bounce(const rt::ray_hit &hit, float ior, float r1, float r2) const override;
 
 
 private:

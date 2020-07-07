@@ -13,7 +13,7 @@ renderer::renderer(const scene &sc, const camera &cam, const ray_accelerator &ac
 
 glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pixel_pos)
 {
-	// Clear the branch stack and add the camera ray
+	// Clear branch stack
 	ctx.branch_stack.clear();
 
 	// Hit record and bounce/scatter
@@ -24,8 +24,8 @@ glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pix
 	glm::vec3 pixel{0.f};
 
 	// Path termination conditions
-	const float min_weight = 0.001;
-	const int max_depth = 10;
+	const float min_weight = 0.000;
+	const int max_depth = 12;
 
 	// Ray parameters
 	rt::ray_branch current;
@@ -37,7 +37,7 @@ glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pix
 	while (true)
 	{
 		hit = m_scene->cast_ray(current.r, *m_accelerator);
-		bounce = hit.get_bounce(ctx.dist(ctx.rng), ctx.dist(ctx.rng));
+		bounce = hit.get_bounce(current.ior, ctx.dist(ctx.rng), ctx.dist(ctx.rng));
 
 		// Emissive materials terminate rays
 		// and contribute to the pixel through
@@ -45,7 +45,15 @@ glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pix
 		if (bounce.emission != glm::vec3{0.f})
 		{
 			pixel += current.weight * bounce.emission;
-			break;
+			
+			// Pop back from branch stack or stop
+			if (!ctx.branch_stack.empty())
+			{
+				current = ctx.branch_stack.back();
+				ctx.branch_stack.pop_back();
+			}
+			else
+				break;
 		}
 		else
 		{

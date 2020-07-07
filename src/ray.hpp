@@ -138,7 +138,7 @@ struct ray_hit
 		returns scattering and emission information and new rays
 		to be sampled.
 	*/
-	ray_bounce get_bounce(float r1, float r2) const;
+	ray_bounce get_bounce(float ior, float r1, float r2) const;
 };
 
 }

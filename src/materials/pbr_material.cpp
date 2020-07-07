@@ -68,7 +68,7 @@ static inline float trowbridge_reitz_ggx(const glm::vec3 &H, const glm::vec3 &N,
 }
 
 
-rt::ray_bounce pbr_material::get_bounce(const rt::ray_hit &hit, float r1, float r2) const
+rt::ray_bounce pbr_material::get_bounce(const rt::ray_hit &hit, float ior, float r1, float r2) const
 {
 	// Use r1 and r2 as polar coordinates to 
 	float phi = r1 * 2.f * rt::pi<>;

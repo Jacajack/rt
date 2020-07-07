@@ -11,7 +11,7 @@ class simple_sky_material : public abstract_material
 {
 public:
 
-	rt::ray_bounce get_bounce(const ray_hit &hit, float r1, float r2) const override
+	rt::ray_bounce get_bounce(const ray_hit &hit, float ior, float r1, float r2) const override
 	{
 		rt::ray_bounce bounce;
 		bounce.brdf = glm::vec3{0.f};
