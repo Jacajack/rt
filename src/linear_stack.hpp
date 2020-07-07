@@ -12,6 +12,11 @@ template <typename T, unsigned int N>
 class linear_stack
 {
 public:
+	~linear_stack()
+	{
+		clear();
+	}
+
 	template <typename... Args>
 	T &emplace(Args&&... args)
 	{
@@ -49,6 +54,12 @@ public:
 	bool empty() const
 	{
 		return m_top_ptr == reinterpret_cast<const T*>(m_data);
+	}
+
+	void clear()
+	{
+		while (!empty())
+			pop();
 	}
 
 private:
