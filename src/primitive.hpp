@@ -234,7 +234,7 @@ inline plane plane::transform(const glm::mat4 &mat) const
 	plane p{*this};
 
 	p.origin = mat * glm::vec4{this->origin, 1.f};
-	p.normal = mat * glm::vec4{this->normal, 0.f};
+	p.normal = glm::normalize(mat * glm::vec4{this->normal, 0.f});
 
 	return p;
 }
@@ -348,9 +348,9 @@ inline triangle triangle::transform(const glm::mat4 &mat) const
 	t.vertices[1] = mat * glm::vec4{this->vertices[1], 1.f};
 	t.vertices[2] = mat * glm::vec4{this->vertices[2], 1.f};
 
-	t.normals[0] = mat * glm::vec4{this->normals[0], 0.f};
-	t.normals[1] = mat * glm::vec4{this->normals[1], 0.f};
-	t.normals[2] = mat * glm::vec4{this->normals[2], 0.f};
+	t.normals[0] = glm::normalize(mat * glm::vec4{this->normals[0], 0.f});
+	t.normals[1] = glm::normalize(mat * glm::vec4{this->normals[1], 0.f});
+	t.normals[2] = glm::normalize(mat * glm::vec4{this->normals[2], 0.f});
 
 	t.uvs[0] = this->uvs[0];
 	t.uvs[1] = this->uvs[1];
