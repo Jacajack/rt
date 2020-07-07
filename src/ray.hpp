@@ -61,7 +61,9 @@ public:
 };
 
 /**
-	Contains a ray bounced-off a surface and its contribution to the lighting
+	Determines reflective, transmissive and emissive properties of
+	a surface. Also determines weights of outgoing (possibly branching)
+	rays.
 
 	Acquired from ray_hit structure by calling get_bounced_ray()
 */
@@ -75,9 +77,39 @@ struct ray_bounce
 	//! Transmitted ray
 	ray transmitted_ray;
 	glm::vec3 btdf;
+	float transmission_ior;
 
 	//! Emission value
 	glm::vec3 emission;
+};
+
+/**
+	Represents a ray branching point - stores parent
+	ray's parameters and the new ray to be explored,
+	so tracing can be later continued from the branching point
+*/
+struct ray_branch
+{
+	ray_branch() = default;
+
+	ray_branch(const rt::ray &R, const glm::vec3 &w, float i, int d) :
+		r(R),
+		weight(w),
+		ior(i),
+		depth(d)
+	{}
+
+	//! The new ray
+	rt::ray r;
+
+	//! Parent ray's influence on pixel color
+	glm::vec3 weight;
+
+	//! IOR of the parent ray
+	float ior;
+
+	//! Depth
+	int depth;
 };
 
 // Forward declarations of material and scene object

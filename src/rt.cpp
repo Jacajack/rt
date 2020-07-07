@@ -58,6 +58,8 @@ static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, st
 	}
 }
 
+
+
 int main(int argc, char **argv)
 {
 	using namespace std::chrono_literals;
@@ -176,11 +178,14 @@ int main(int argc, char **argv)
 	rt::camera cam({0, 2, 6}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
 	cam.look_at({0, 0.5, 0});
 
-	// Renderer
-	rt::renderer ren{scene, cam, {width, height}, bvh};
-
 	// Main random device
 	std::random_device rnd;
+
+	// Renderer
+	rt::renderer ren{scene, cam, bvh};
+
+	// Path tracing context
+	rt::renderer::path_tracing_context ctx(width, height, rnd());
 
 	// Start time
 	auto t_start = std::chrono::high_resolution_clock::now();
@@ -188,11 +193,27 @@ int main(int argc, char **argv)
 	// While the preview is open
 	for (int i = 1; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
 	{
-		ren.sample(rnd());
+		ren.sample_image(ctx);
 		
 		{
 			std::lock_guard lock{pixels_mutex};
-			ren.pixels_to_rgba(pixels.data());
+
+			std::uint8_t *ptr = pixels.data();
+			for (int y = 0; y < height; y++)
+			{
+				for (int x = 0; x < width; x++)
+				{
+					// Reinhard tonemapping and sRGB correction
+					glm::vec3 pix =	ctx.pixels[y * width + x] / float(ctx.sample_count);
+					pix = pix / (pix + 1.f);
+					pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
+
+					*ptr++ = pix.r * 255.99f;
+					*ptr++ = pix.g * 255.99f;
+					*ptr++ = pix.b * 255.99f;
+					*ptr++ = 255;
+				}
+			}
 		}
 
 		auto t_now = std::chrono::high_resolution_clock::now();

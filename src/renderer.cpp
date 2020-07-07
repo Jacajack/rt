@@ -1,15 +1,110 @@
 #include "renderer.hpp"
 #include <random>
+#include "linear_stack.hpp"
 
 using rt::renderer;
 
-renderer::renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolution, const ray_accelerator &accel) :
+renderer::renderer(const scene &sc, const camera &cam, const ray_accelerator &accel) :
 	m_scene(&sc),
 	m_camera(&cam),
-	m_accelerator(&accel),
-	m_resolution(resolution),
-	m_pixels(m_resolution.x * m_resolution.y, {0, 0, 0})
+	m_accelerator(&accel)
 {
+}
+
+glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pixel_pos)
+{
+	// Clear the branch stack and add the camera ray
+	ctx.branch_stack.clear();
+
+	// Hit record and bounce/scatter
+	rt::ray_hit hit;
+	rt::ray_bounce bounce;
+
+	// Sampled pixel
+	glm::vec3 pixel{0.f};
+
+	// Path termination conditions
+	const float min_weight = 0.001;
+	const int max_depth = 10;
+
+	// Ray parameters
+	rt::ray_branch current;
+	current.r = m_camera->get_ray(pixel_pos);
+	current.weight = glm::vec3{1.f};
+	current.ior = 1.f;
+	current.depth = 0;
+
+	while (true)
+	{
+		hit = m_scene->cast_ray(current.r, *m_accelerator);
+		bounce = hit.get_bounce(ctx.dist(ctx.rng), ctx.dist(ctx.rng));
+
+		// Emissive materials terminate rays
+		// and contribute to the pixel through
+		// ray's weight
+		if (bounce.emission != glm::vec3{0.f})
+		{
+			pixel += current.weight * bounce.emission;
+			break;
+		}
+		else
+		{
+			bool spawn_reflection = 
+				(bounce.brdf != glm::vec3{0.f})
+				&& (glm::length(bounce.brdf * current.weight) > min_weight)
+				&& (current.depth + 1 < max_depth);
+
+			bool spawn_transmission = 
+				(bounce.btdf != glm::vec3{0.f})
+				&& (glm::length(bounce.btdf * current.weight) > min_weight)
+				&& (current.depth + 1 < max_depth);
+
+			// If both rays are to be cast, store branch point
+			// and continue with transmissive ray
+			if (spawn_reflection && spawn_transmission)
+			{
+				ctx.branch_stack.emplace_back(
+					bounce.reflected_ray,
+					current.weight * bounce.brdf,
+					current.ior,
+					current.depth + 1
+				);
+
+				current.r = bounce.transmitted_ray;
+				current.weight *= bounce.btdf;
+				current.ior = bounce.transmission_ior;
+				current.depth++;
+			}
+			else if (spawn_transmission)
+			{
+				// Only traverse transmission ray
+				current.r = bounce.transmitted_ray;
+				current.weight *= bounce.btdf;
+				current.ior = bounce.transmission_ior;
+				current.depth++;
+			}
+			else if (spawn_reflection)
+			{
+				// Only traverse reflection ray
+				current.r = bounce.reflected_ray;
+				current.weight *= bounce.brdf / bounce.reflection_pdf;
+				current.depth++;
+			}
+			else
+			{
+				// Pop back from branch stack or stop
+				if (!ctx.branch_stack.empty())
+				{
+					current = ctx.branch_stack.back();
+					ctx.branch_stack.pop_back();
+				}
+				else
+					break;
+			}
+		}
+	}
+
+	return pixel;
 }
 
 /**
@@ -17,76 +112,32 @@ renderer::renderer(const scene &sc, const camera &cam, const glm::ivec2 &resolut
 
 	In the future we will be having more fun in this function
 */
-void renderer::sample(int seed)
+void renderer::sample_image(path_tracing_context &ctx)
 {
-	std::mt19937 rng(seed);
-	std::uniform_real_distribution<float> dist(0.f, 1.f);
-
-	std::vector<rt::ray_bounce> bounces;
-	bounces.reserve(20);
-
-	for (int y = 0; y < m_resolution.y; y++)
+	for (int y = 0; y < ctx.resolution.y; y++)
 	{
-		for (int x = 0; x < m_resolution.x; x++)
+		for (int x = 0; x < ctx.resolution.x; x++)
 		{
 			// Normalized pixel coordinates + random anti-aliasing offset
 			glm::vec2 pixel_pos{
-				(x + dist(rng)) / m_resolution.x * 2.f - 1.f,
-				1.f - (y + dist(rng)) / m_resolution.y * 2.f
+				(x + ctx.dist(ctx.rng)) / ctx.resolution.x * 2.f - 1.f,
+				1.f - (y + ctx.dist(ctx.rng)) / ctx.resolution.y * 2.f
 			};
 
-			// Cast ray
-			rt::ray pixel_ray = m_camera->get_ray(pixel_pos);
-			rt::ray_hit hit = m_scene->cast_ray(pixel_ray, *m_accelerator);
-
-			// Clear bounces list
-			bounces.clear();
-
-			// Bounce rays
-			do
-			{
-				// Get bounced ray
-				bounces.push_back(hit.get_bounce(dist(rng), dist(rng)));
-
-				// Cast the bounced ray
-				hit = m_scene->cast_ray(bounces.back().reflected_ray, *m_accelerator);
-			}
-			while (bounces.size() < 5 && bounces.back().emission == glm::vec3{0.f});
-
-			// Skip if the last hit was not emissive
-			if (bounces.back().emission == glm::vec3{0.f}) continue;
-			
-			// Integrate radiance from all bounces
-			glm::vec3 radiance{0.f};
-			for (int i = bounces.size() - 1; i >= 0; i--)
-			{
-				const auto &b = bounces.at(i);
-				radiance = radiance * b.brdf / b.reflection_pdf + b.emission;
-			}
-
 			// Write pixel
-			m_pixels[y * m_resolution.x + x] += radiance;
+			ctx.pixels[y * ctx.resolution.x + x] += sample_pixel(ctx, pixel_pos);
 		}
 	}
 
-	m_samples++;
+	ctx.sample_count++;
 }
 
-void renderer::pixels_to_rgba(uint8_t *ptr)
+renderer::path_tracing_context::path_tracing_context(int width, int height, unsigned long seed) :
+	rng(seed),
+	dist(0.f, 1.f),
+	pixels(width * height, glm::vec3{0.f}),
+	resolution(width, height),
+	sample_count(0)
 {
-	for (int y = 0; y < m_resolution.y; y++)
-	{
-		for (int x = 0; x < m_resolution.x; x++)
-		{
-			// Reinhard tonemapping and sRGB correction
-			glm::vec3 pix =	m_pixels[y * m_resolution.x + x] / float(m_samples);
-			pix = pix / (pix + 1.f);
-			pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
-
-			*ptr++ = pix.r * 255.99f;
-			*ptr++ = pix.g * 255.99f;
-			*ptr++ = pix.b * 255.99f;
-			*ptr++ = 255;
-		}
-	}
+	branch_stack.reserve(256);
 }
