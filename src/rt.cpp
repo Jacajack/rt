@@ -161,8 +161,11 @@ int main(int argc, char **argv)
 
 	// BVH accelerator
 	std::cerr << "building BVH..." << std::endl;
+	auto t_bvh_start = std::chrono::high_resolution_clock::now();
 	rt::bvh_tree bvh{scene};
-	std::cerr << "done" << std::endl;
+	auto t_bvh_end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> t_bvh = t_bvh_end - t_bvh_start;
+	std::cerr << "done - took " << t_bvh.count() << "s" << std::endl;
 
 
 	// Camera setup
@@ -178,155 +181,74 @@ int main(int argc, char **argv)
 	// Path tracing context
 	rt::renderer::path_tracing_context ctx(width, height, rnd());
 
-	// Start time
-	auto t_start = std::chrono::high_resolution_clock::now();
-
-	int buffer_pool_size = 20;
-	int render_threads = 6;
-
-	std::vector<std::unique_ptr<std::vector<glm::vec3>>> buffer_pool;
-	std::condition_variable buffer_pool_cv;
-	std::mutex buffer_pool_mutex;
-
-
-	std::vector<std::unique_ptr<std::vector<glm::vec3>>> dirty_buffer_pool;
-	std::mutex dirty_buffer_pool_mutex;
-
-	// Create pools
-	buffer_pool.reserve(buffer_pool_size);
-	dirty_buffer_pool.reserve(buffer_pool_size);
-	for (int i = 0; i < buffer_pool_size; i++)
-		buffer_pool.emplace_back(std::make_unique<std::vector<glm::vec3>>(width * height));
-
-
 	// Create a new context for each thread
+	int render_threads = 9;
+	bool active = true;
 	std::vector<rt::renderer::path_tracing_context> contexts;
 	contexts.reserve(render_threads);
 	for (int i = 0; i < render_threads; i++)
 		contexts.emplace_back(width, height, rnd());
 
-
-	bool active = true;
-
-	auto render_task = [
-		&active,
-		&ren,
-		&buffer_pool,
-		&buffer_pool_cv,
-		&buffer_pool_mutex,
-		&dirty_buffer_pool,
-		&dirty_buffer_pool_mutex](rt::renderer::path_tracing_context &ctx)
+	auto render_task = [&active, &ren](rt::renderer::path_tracing_context &ctx)
 	{
-		using namespace std::chrono_literals;
-
 		while (active)
-		{
-			// Clear context buffer
-			std::fill(ctx.pixels.begin(), ctx.pixels.end(), glm::vec3{0.f});
-
 			ren.sample_image(ctx);
-			std::unique_ptr<std::vector<glm::vec3>> buf_ptr;
-
-			{
-				// Wait for any clean buffer to be available
-				std::unique_lock lock{buffer_pool_mutex};
-
-				while (buffer_pool.empty())
-				{
-					buffer_pool_cv.wait_for(lock, 100ms);
-					if (!active) return;
-				}
-
-				// Get a clean buffer
-				buf_ptr = std::move(buffer_pool.back());
-				buffer_pool.pop_back();
-			}
-
-			// Copy rendered data to the buffer
-			*buf_ptr = ctx.pixels;
-
-			// Push dirty buffer
-			{
-				std::lock_guard dirty_lock{dirty_buffer_pool_mutex};
-				dirty_buffer_pool.emplace_back(std::move(buf_ptr));
-			}
-		}
 	};
 
 	// Spawn rendering threads
 	std::vector<std::thread> threads;
 	threads.reserve(render_threads);
 	for (int i = 0; i < render_threads; i++)
-	{
 		threads.emplace_back(render_task, std::ref(contexts[i]));
-	}
+
+	// Start time
+	auto t_start = std::chrono::high_resolution_clock::now();
 
 	// While the preview is open
 	for (int i = 1; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
 	{
-		// Consume one dirty buffer
-		if (!dirty_buffer_pool.empty())
+		// The ctx context is used as an accumulator
+		ctx.sample_count = 0;
+		std::fill(ctx.pixels.begin(), ctx.pixels.end(), glm::vec3{0.f});
+		for (auto &c : contexts)
 		{
-			// std::cout << "clean/dirty: " << buffer_pool.size() << " " << dirty_buffer_pool.size() << std::endl;
-
-			// Acquire dirty pool
-			std::unique_ptr<std::vector<glm::vec3>> buf_ptr;
-			{
-				std::lock_guard lock{dirty_buffer_pool_mutex};
-				buf_ptr = std::move(dirty_buffer_pool.back());
-				dirty_buffer_pool.pop_back();
-			}
-
-			// Add the pixels to the main context (temporary solution)
 			std::transform(
-					buf_ptr->begin(), buf_ptr->end(),
+					c.pixels.begin(), c.pixels.end(),
 					ctx.pixels.begin(),
 					ctx.pixels.begin(),
 					std::plus<glm::vec3>()
 			);
+			ctx.sample_count += c.sample_count;
+		}
 
-			// Return the buffer
+
+		{
+			std::lock_guard lock{pixels_mutex};
+
+			std::uint8_t *ptr = pixels.data();
+			for (int y = 0; y < height; y++)
 			{
-				std::unique_lock lock{buffer_pool_mutex};
-
-				if (buffer_pool.empty())
-					std::cout << "no buffers avaiable..." << std::endl;
-
-				buffer_pool.emplace_back(std::move(buf_ptr));
-			}
-
-			buffer_pool_cv.notify_all();
-			ctx.sample_count++;
-		
-
-			{
-				std::lock_guard lock{pixels_mutex};
-
-				std::uint8_t *ptr = pixels.data();
-				for (int y = 0; y < height; y++)
+				for (int x = 0; x < width; x++)
 				{
-					for (int x = 0; x < width; x++)
-					{
-						// Reinhard tonemapping and sRGB correction
-						glm::vec3 pix =	ctx.pixels[y * width + x] / float(ctx.sample_count);
-						pix = pix / (pix + 1.f);
-						pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
+					// Reinhard tonemapping and sRGB correction
+					glm::vec3 pix =	ctx.pixels[y * width + x] / float(ctx.sample_count);
+					pix = pix / (pix + 1.f);
+					pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
 
-						*ptr++ = pix.r * 255.99f;
-						*ptr++ = pix.g * 255.99f;
-						*ptr++ = pix.b * 255.99f;
-						*ptr++ = 255;
-					}
+					*ptr++ = pix.r * 255.99f;
+					*ptr++ = pix.g * 255.99f;
+					*ptr++ = pix.b * 255.99f;
+					*ptr++ = 255;
 				}
 			}
-
-			auto t_now = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> t_total = t_now - t_start;
-
-			std::cerr << std::setw(4) << ctx.sample_count << " samples - time = " << std::setw(8) << t_total.count() 
-				<< "s, per sample = " << std::setw(8) << t_total.count() / ctx.sample_count 
-				<< "s, per sample/th = " << std::setw(8) << t_total.count() / ctx.sample_count * render_threads << std::endl;
 		}
+
+		auto t_now = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> t_total = t_now - t_start;
+
+		std::cerr << std::setw(4) << ctx.sample_count << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
+			<< "s, per sample = " << std::setw(8) << std::fixed << t_total.count() / ctx.sample_count 
+			<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / ctx.sample_count * render_threads << std::endl;
 	}
 
 	active = false;
