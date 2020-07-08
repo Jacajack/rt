@@ -4,6 +4,10 @@ Another excercise in programming...
 
 <hr>
 
+2020-07-08 - ray transmission and Russian roulette for reflection/transmission sampling:<br>
+<img src=screens/2020-07-08-1.png /><br>
+~854 samples, 1.888s per sample
+
 2020-07-07 - scene object transform:<br>
 <img src=screens/2020-07-07-1.png /><br>
 ~808 samples, 0.923s per sample
