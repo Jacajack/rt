@@ -1,6 +1,6 @@
 #pragma once
 
-#include "linear_tree.hpp"
+#include "containers/linear_tree.hpp"
 #include "ray_accelerator.hpp"
 #include "primitive.hpp"
 #include "scene.hpp"

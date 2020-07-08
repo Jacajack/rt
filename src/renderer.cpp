@@ -1,6 +1,5 @@
 #include "renderer.hpp"
 #include <random>
-#include "linear_stack.hpp"
 
 using rt::renderer;
 

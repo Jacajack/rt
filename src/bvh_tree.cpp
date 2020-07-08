@@ -5,7 +5,7 @@
 #include <set>
 
 #include "ray.hpp"
-#include "linear_stack.hpp"
+#include "containers/linear_stack.hpp"
 
 using rt::bvh_tree;
 using rt::bvh_tree_node;
