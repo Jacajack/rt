@@ -73,7 +73,7 @@ rt::ray_bounce pbr_material::get_bounce(const rt::path_tracer &ctx, const rt::ra
 {
 	float r1 = ctx.get_rand();
 	float r2 = ctx.get_rand();
-	// float r3 = ctx.get_rand();
+	float r3 = ctx.get_rand();
 
 	// Use r1 and r2 as polar coordinates to 
 	float phi = r1 * 2.f * rt::pi<>;
@@ -133,7 +133,7 @@ rt::ray_bounce pbr_material::get_bounce(const rt::path_tracer &ctx, const rt::ra
 	// Test Fresnel factor against random number and decide which
 	// BRDF is used
 	glm::vec3 brdf;
-	float r3 = drand48(); // REPLACE
+	// float r3 = drand48(); // REPLACE
 	if (r3 > F)
 	{
 		theta = r2 * 0.5f * rt::pi<>;
