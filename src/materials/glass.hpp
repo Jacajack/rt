@@ -12,14 +12,14 @@ public:
 		m_ior(ior)
 	{}
 
-	rt::ray_bounce get_bounce(const rt::ray_hit &hit, float ior, float r1, float r2) const override;
+	rt::ray_bounce get_bounce(const rt::path_tracer &ctx, const rt::ray_hit &hit, float ior) const override;
 
 private:
 	glm::vec3 m_color;
 	float m_ior;
 };
 
-inline rt::ray_bounce simple_glass_material::get_bounce(const rt::ray_hit &hit, float ior, float r1, float r2) const
+inline rt::ray_bounce simple_glass_material::get_bounce(const rt::path_tracer &ctx, const rt::ray_hit &hit, float ior) const
 {
 	float eta;
 	float new_ior;

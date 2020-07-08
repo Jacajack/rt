@@ -1,5 +1,6 @@
 #include "pbr_material.hpp"
 #include "../utility.hpp"
+#include "../path_tracer.hpp"
 
 using rt::pbr_material;
 
@@ -68,8 +69,12 @@ static inline float trowbridge_reitz_ggx(const glm::vec3 &H, const glm::vec3 &N,
 }
 
 
-rt::ray_bounce pbr_material::get_bounce(const rt::ray_hit &hit, float ior, float r1, float r2) const
+rt::ray_bounce pbr_material::get_bounce(const rt::path_tracer &ctx, const rt::ray_hit &hit, float ior) const
 {
+	float r1 = ctx.get_rand();
+	float r2 = ctx.get_rand();
+	// float r3 = ctx.get_rand();
+
 	// Use r1 and r2 as polar coordinates to 
 	float phi = r1 * 2.f * rt::pi<>;
 	float theta = std::atan(m_alpha * std::sqrt(r2 / (1.f - r2)));

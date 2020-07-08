@@ -4,7 +4,7 @@
 
 using rt::ray_hit;
 
-rt::ray_bounce ray_hit::get_bounce(float ior, float r1, float r2) const
+rt::ray_bounce ray_hit::get_bounce(const rt::path_tracer &ctx, float ior) const
 {
-	return this->material->get_bounce(*this, ior, r1, r2);
+	return this->material->get_bounce(ctx, *this, ior);
 }

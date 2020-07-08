@@ -25,7 +25,7 @@ public:
 		Returns scattering and emission information and generates new rays based on two
 		uniformly random numbers and IOR of the medium the ray was travelling in
 	*/
-	virtual rt::ray_bounce get_bounce(const ray_hit &hit, float ior, float r1, float r2) const = 0;
+	virtual rt::ray_bounce get_bounce(const rt::path_tracer &ctx, const ray_hit &hit, float ior) const = 0;
 };
 
 }

@@ -38,6 +38,7 @@ set( CXX_FLAGS_RELEASE_LIST
 	"-ftree-vectorize"
 	"-march=native"
 	"-DNDEBUG"
+	# "-fsanitize=thread"
 	# "-fsanitize=address"
 
 )
@@ -58,6 +59,7 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/camera.cpp"
 	"${PROJECT_SOURCE_DIR}/scene.cpp"
 	"${PROJECT_SOURCE_DIR}/renderer.cpp"
+	"${PROJECT_SOURCE_DIR}/path_tracer.cpp"
 	"${PROJECT_SOURCE_DIR}/primitive_collection.cpp"
 	"${PROJECT_SOURCE_DIR}/mesh_data.cpp"
 	"${PROJECT_SOURCE_DIR}/bvh_tree.cpp"

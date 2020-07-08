@@ -117,6 +117,7 @@ struct ray_branch
 // Forward declarations of material and scene object
 class abstract_material;
 class scene_object;
+class path_tracer;
 
 /**
 	Built from ray_intersection.
@@ -140,7 +141,7 @@ struct ray_hit
 		returns scattering and emission information and new rays
 		to be sampled.
 	*/
-	ray_bounce get_bounce(float ior, float r1, float r2) const;
+	ray_bounce get_bounce(const rt::path_tracer &ctx, float ior) const;
 };
 
 }
