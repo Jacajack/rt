@@ -87,6 +87,8 @@ struct ray_bounce
 	Represents a ray branching point - stores parent
 	ray's parameters and the new ray to be explored,
 	so tracing can be later continued from the branching point
+
+	\warning Deprecated - and will likely be removed
 */
 struct ray_branch
 {

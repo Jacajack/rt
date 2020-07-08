@@ -48,9 +48,6 @@ struct renderer::path_tracing_context
 	//! Uniform 0-1 float distrubition
 	std::uniform_real_distribution<float> dist;
 
-	//! Ray branching points
-	std::vector<rt::ray_branch> branch_stack;
-
 	//! Image data
 	std::vector<glm::vec3> pixels;
 	const glm::ivec2 resolution;

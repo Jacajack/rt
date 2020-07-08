@@ -13,9 +13,6 @@ renderer::renderer(const scene &sc, const camera &cam, const ray_accelerator &ac
 
 glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pixel_pos)
 {
-	// Clear branch stack
-	ctx.branch_stack.clear();
-
 	// Hit record and bounce/scatter
 	rt::ray_hit hit;
 	rt::ray_bounce bounce;
@@ -25,7 +22,7 @@ glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pix
 
 	// Path termination conditions
 	const float min_weight = 0.000;
-	const int max_depth = 12;
+	const int max_depth = 100;
 
 	// Ray parameters
 	rt::ray_branch current;
@@ -45,69 +42,46 @@ glm::vec3 renderer::sample_pixel(path_tracing_context &ctx, const glm::vec2 &pix
 		if (bounce.emission != glm::vec3{0.f})
 		{
 			pixel += current.weight * bounce.emission;
-			
-			// Pop back from branch stack or stop
-			if (!ctx.branch_stack.empty())
-			{
-				current = ctx.branch_stack.back();
-				ctx.branch_stack.pop_back();
-			}
-			else
-				break;
+			break;
 		}
 		else
 		{
-			bool spawn_reflection = 
-				(bounce.brdf != glm::vec3{0.f})
-				&& (glm::length(bounce.brdf * current.weight) > min_weight)
-				&& (current.depth + 1 < max_depth);
+			if (current.depth > 40) break;
 
-			bool spawn_transmission = 
-				(bounce.btdf != glm::vec3{0.f})
-				&& (glm::length(bounce.btdf * current.weight) > min_weight)
-				&& (current.depth + 1 < max_depth);
+			// bool spawn_reflection = 
+				// (glm::length(bounce.brdf * current.weight) > min_weight)
+				// (current.depth + 1 < max_depth);
 
-			// If both rays are to be cast, store branch point
-			// and continue with transmissive ray
-			if (spawn_reflection && spawn_transmission)
-			{
-				ctx.branch_stack.emplace_back(
-					bounce.reflected_ray,
-					current.weight * bounce.brdf,
-					current.ior,
-					current.depth + 1
-				);
+			// bool spawn_transmission = 
+				// (glm::length(bounce.btdf * current.weight) > min_weight)
+				// (current.depth + 1 < max_depth);
 
-				current.r = bounce.transmitted_ray;
-				current.weight *= bounce.btdf;
-				current.ior = bounce.transmission_ior;
-				current.depth++;
-			}
-			else if (spawn_transmission)
-			{
-				// Only traverse transmission ray
-				current.r = bounce.transmitted_ray;
-				current.weight *= bounce.btdf;
-				current.ior = bounce.transmission_ior;
-				current.depth++;
-			}
-			else if (spawn_reflection)
+			float R = glm::length(bounce.brdf) / bounce.reflection_pdf;
+			float T = glm::length(bounce.btdf);
+			
+			// No outgoing rays
+			if (R + T == 0.f) break;
+
+			float p_r = R / (R + T);
+			float p_t = T / (R + T);
+
+			// Uniform random variable
+			float x = ctx.dist(ctx.rng);
+
+			if (x < p_r) // Sample reflection
 			{
 				// Only traverse reflection ray
 				current.r = bounce.reflected_ray;
-				current.weight *= bounce.brdf / bounce.reflection_pdf;
+				current.weight *= bounce.brdf / bounce.reflection_pdf / p_r;
 				current.depth++;
 			}
-			else
+			else // Sample transmission
 			{
-				// Pop back from branch stack or stop
-				if (!ctx.branch_stack.empty())
-				{
-					current = ctx.branch_stack.back();
-					ctx.branch_stack.pop_back();
-				}
-				else
-					break;
+				// Only traverse transmission ray
+				current.r = bounce.transmitted_ray;
+				current.weight *= bounce.btdf / p_t;
+				current.ior = bounce.transmission_ior;
+				current.depth++;
 			}
 		}
 	}
@@ -133,7 +107,7 @@ void renderer::sample_image(path_tracing_context &ctx)
 			};
 
 			// Write pixel
-			ctx.pixels[y * ctx.resolution.x + x] += sample_pixel(ctx, pixel_pos);
+			ctx.pixels[y * ctx.resolution.x + x] += sample_pixel(ctx, pixel_pos, 1);
 		}
 	}
 
