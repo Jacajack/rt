@@ -38,7 +38,7 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos) const
 	while (true)
 	{
 		hit = m_scene->cast_ray(current.r, *m_accelerator);
-		bounce = hit.get_bounce(*this, current.ior);
+		bounce = hit.material->get_bounce(*this, hit, current.ior);
 
 		// Emissive materials terminate rays
 		// and contribute to the pixel through
