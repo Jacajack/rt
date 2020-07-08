@@ -49,16 +49,16 @@ public:
 	}
 
 private:
+	// Camera, scene and ray accelerator
+	const rt::camera *m_camera;
+	const rt::scene *m_scene;
+	const rt::ray_accelerator *m_accelerator;
+
 	//! Random number generator
 	mutable std::mt19937 m_rng;
 	
 	//! Uniform 0-1 float distrubition
 	mutable std::uniform_real_distribution<float> m_dist;
-
-	// Camera, scene and ray accelerator
-	const rt::camera *m_camera;
-	const rt::scene *m_scene;
-	const rt::ray_accelerator *m_accelerator;
 
 	//! Image data
 	//! \todo maybe move this out?

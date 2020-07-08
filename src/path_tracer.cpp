@@ -1,4 +1,5 @@
 #include "path_tracer.hpp"
+#include <algorithm>
 
 using rt::path_tracer;
 
@@ -113,4 +114,9 @@ void path_tracer::sample_image()
 	}
 
 	m_sample_count++;
+}
+
+void path_tracer::clear_image()
+{
+	std::fill(m_pixels.begin(), m_pixels.end(), glm::vec3{0.f});
 }

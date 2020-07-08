@@ -176,29 +176,10 @@ int main(int argc, char **argv)
 	// Main random device
 	std::random_device rnd;
 
-	// Output buffer (temp)
-	std::vector<glm::vec3> buffer(width * height, glm::vec3{0.f});
-	int sample_count = 0;
-
-	// Create a new context for each thread
-	int render_threads = 9;
-	bool active = true;
-	std::vector<rt::path_tracer> contexts;
-	contexts.reserve(render_threads);
-	for (int i = 0; i < render_threads; i++)
-		contexts.emplace_back(cam, scene, bvh, width, height, rnd());
-
-	auto render_task = [&active](rt::path_tracer &ctx)
-	{
-		while (active)
-			ctx.sample_image();
-	};
-
-	// Spawn rendering threads
-	std::vector<std::thread> threads;
-	threads.reserve(render_threads);
-	for (int i = 0; i < render_threads; i++)
-		threads.emplace_back(render_task, std::ref(contexts[i]));
+	// The renderer
+	const int render_threads = 6;
+	rt::renderer ren(scene, cam, bvh, width, height, rnd(), render_threads);
+	ren.start();
 
 	// Start time
 	auto t_start = std::chrono::high_resolution_clock::now();
@@ -206,55 +187,23 @@ int main(int argc, char **argv)
 	// While the preview is open
 	for (int i = 1; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
 	{
-		// The ctx context is used as an accumulator
-		sample_count = 0;
-		std::fill(buffer.begin(), buffer.end(), glm::vec3{0.f});
-		for (auto &c : contexts)
-		{
-			std::transform(
-					c.get_image().cbegin(), c.get_image().cend(),
-					buffer.begin(),
-					buffer.begin(),
-					std::plus<glm::vec3>()
-			);
-
-			sample_count += c.get_sample_count();
-		}
-
+		ren.compute_result();
 
 		{
+			auto &img = ren.get_ldr_image();
 			std::lock_guard lock{pixels_mutex};
-
-			std::uint8_t *ptr = pixels.data();
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{
-					// Reinhard tonemapping and sRGB correction
-					glm::vec3 pix =	buffer[y * width + x] / float(sample_count);
-					pix = pix / (pix + 1.f);
-					pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
-
-					*ptr++ = pix.r * 255.99f;
-					*ptr++ = pix.g * 255.99f;
-					*ptr++ = pix.b * 255.99f;
-					*ptr++ = 255;
-				}
-			}
+			std::copy(img.begin(), img.end(), pixels.begin());
 		}
 
 		auto t_now = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> t_total = t_now - t_start;
 
-		std::cerr << std::setw(4) << sample_count << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
-			<< "s, per sample = " << std::setw(8) << std::fixed << t_total.count() / sample_count 
-			<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / sample_count * render_threads << std::endl;
+		std::cerr << std::setw(4) << ren.get_sample_count() << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
+			<< "s, per sample = " << std::setw(8) << std::fixed << t_total.count() / ren.get_sample_count() 
+			<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / ren.get_sample_count() * render_threads << std::endl;
 	}
 
-	active = false;
-	for (auto &t : threads)
-		t.join();
-
+	ren.stop();
 	preview_thread.join();
 	return EXIT_SUCCESS;	
 }
