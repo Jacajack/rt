@@ -17,7 +17,6 @@ struct bvh_tree_node
 	*/
 	bvh_tree_node(triangle *begin, triangle *end);
 
-	bool children_overlap;
 	rt::aabb bounding_volume;
 	rt::triangle *begin;
 	rt::triangle *end;

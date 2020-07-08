@@ -11,7 +11,6 @@ using rt::bvh_tree;
 using rt::bvh_tree_node;
 
 bvh_tree_node::bvh_tree_node(rt::triangle *b, rt::triangle *e) :
-	children_overlap(true),
 	begin(b),
 	end(e)
 {
@@ -135,9 +134,6 @@ void bvh_tree::build_tree()
 		it->begin = nullptr;
 		it->end = nullptr;
 
-		// Check if the children overlap
-		it->children_overlap = it.left()->bounding_volume.check_aabb_overlap(it.right()->bounding_volume);
-
 		// Add children to the processing stack
 		to_process.push(it.left());
 		to_process.push(it.right());
@@ -198,43 +194,25 @@ bool bvh_tree::cast_ray(const rt::ray &r, ray_hit &best_hit) const
 		float tl = node.left()->bounding_volume.ray_intersection_distance(r);
 		float tr = node.right()->bounding_volume.ray_intersection_distance(r);
 
-		if (tl == HUGE_VALF && tr == HUGE_VALF)
-			continue;
-		else if (tl == HUGE_VALF || tr == HUGE_VALF)
+		// If at least one child is hit
+		// Check the farther child later, so put it on the stack first
+		// Also, only put nodes on stack if the closest intersection with them
+		// is closer than current best hit
+		if (tl != rt::ray_miss || tr != rt::ray_miss)
 		{
-			// Missed only one child
-			if (tr == HUGE_VALF && tl < best_hit.distance) intersections.emplace(node.left(), tl);
-			else if (tl == HUGE_VALF && tr < best_hit.distance) intersections.emplace(node.right(), tr);
-		}
-		else
-		{
-			// Hit both
-			// If the children overlap, put the farther child on the stack first
-			// Otherwise only check the closer one
-			if (node->children_overlap)
+			if (tl > tr)
 			{
-				if (tl > tr)
-				{
-					if (tl < best_hit.distance)
-						intersections.emplace(node.left(), tl);
-					
-					intersections.emplace(node.right(), tr);
-				}
-				else
-				{
-					if (tr < best_hit.distance)
-						intersections.emplace(node.right(), tr);
-
+				if (tl < best_hit.distance)
 					intersections.emplace(node.left(), tl);
-				}
+				
+				intersections.emplace(node.right(), tr);
 			}
-			else // Only check the closer one
+			else
 			{
-				// This is still fishy....
-				if (tl < tr)
-					intersections.emplace(node.left(), tl);
-				else
+				if (tr < best_hit.distance)
 					intersections.emplace(node.right(), tr);
+
+				intersections.emplace(node.left(), tl);
 			}
 		}
 	}
