@@ -28,14 +28,14 @@ inline rt::ray_bounce simple_glass_material::get_bounce(const rt::ray_hit &hit, 
 	if (glm::dot(hit.direction, hit.normal) < 0.f)
 	{
 		// in
-		eta = 0.66f;
+		eta = 1.f / m_ior;
 		N = hit.normal;
 		new_ior = m_ior;
 	}
 	else
 	{
 		// out
-		eta = 1.5f;
+		eta = m_ior;
 		N = -hit.normal;
 		new_ior = 1.f;
 	}
@@ -46,7 +46,7 @@ inline rt::ray_bounce simple_glass_material::get_bounce(const rt::ray_hit &hit, 
 	float fresnel = F0 + (1.f - F0) * std::pow(1.f - glm::max(glm::dot(-hit.direction, N), 0.f), 5.f);
 
 	// TIR case
-	if (T.length() == 0.f)
+	if (glm::length(T) == 0.f)
 		fresnel = 1.f;
 
 	// Reflected ray
