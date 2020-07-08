@@ -107,7 +107,7 @@ void renderer::sample_image(path_tracing_context &ctx)
 			};
 
 			// Write pixel
-			ctx.pixels[y * ctx.resolution.x + x] += sample_pixel(ctx, pixel_pos, 1);
+			ctx.pixels[y * ctx.resolution.x + x] += sample_pixel(ctx, pixel_pos);
 		}
 	}
 
@@ -121,5 +121,4 @@ renderer::path_tracing_context::path_tracing_context(int width, int height, unsi
 	resolution(width, height),
 	sample_count(0)
 {
-	branch_stack.reserve(256);
 }
