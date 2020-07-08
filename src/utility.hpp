@@ -1,5 +1,7 @@
 #pragma once
 
+#define RT_CACHE_LINE_SIZE 64
+
 namespace rt {
 
 template <typename T = float>

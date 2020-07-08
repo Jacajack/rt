@@ -5,6 +5,7 @@
 #include "scene.hpp"
 #include "camera.hpp"
 #include "ray_accelerator.hpp"
+#include "utility.hpp"
 
 namespace rt {
 
@@ -65,7 +66,7 @@ private:
 	std::vector<glm::vec3> m_pixels;
 	glm::ivec2 m_resolution;
 	int m_sample_count;
-};
+} __attribute__((aligned(RT_CACHE_LINE_SIZE)));
 
 
 }
