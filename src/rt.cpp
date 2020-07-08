@@ -177,12 +177,13 @@ int main(int argc, char **argv)
 	std::random_device rnd;
 
 	// The renderer
-	const int render_threads = 6;
+	const int render_threads = 2;
 	rt::renderer ren(scene, cam, bvh, width, height, rnd(), render_threads);
 	ren.start();
 
-	// Start time
+	// Start time and sample count
 	auto t_start = std::chrono::high_resolution_clock::now();
+	int samples = 0, last_samples = 0;
 
 	// While the preview is open
 	for (int i = 1; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
@@ -193,14 +194,17 @@ int main(int argc, char **argv)
 			auto &img = ren.get_ldr_image();
 			std::lock_guard lock{pixels_mutex};
 			std::copy(img.begin(), img.end(), pixels.begin());
+			last_samples = samples;
+			samples = ren.get_sample_count();
 		}
 
 		auto t_now = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> t_total = t_now - t_start;
 
-		std::cerr << std::setw(4) << ren.get_sample_count() << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
-			<< "s, per sample = " << std::setw(8) << std::fixed << t_total.count() / ren.get_sample_count() 
-			<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / ren.get_sample_count() * render_threads << std::endl;
+		if (samples != last_samples)
+			std::cerr << std::setw(4) << samples << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
+				<< "s, per sample = " << std::setw(8) << std::fixed << t_total.count() / samples
+				<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / samples * render_threads << std::endl;
 	}
 
 	ren.stop();
