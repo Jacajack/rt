@@ -181,24 +181,40 @@ int main(int argc, char **argv)
 	int sample_count = 0;
 
 	// Create a new context for each thread
-	int render_threads = 9;
-	bool active = true;
-	std::vector<rt::path_tracer> contexts;
-	contexts.reserve(render_threads);
-	for (int i = 0; i < render_threads; i++)
-		contexts.emplace_back(cam, scene, bvh, width, height, rnd());
+	int render_threads = 6;
 
-	auto render_task = [&active](rt::path_tracer &ctx)
+	struct foo
 	{
-		while (active)
-			ctx.sample_image();
+		std::vector<rt::path_tracer> contexts;
+		std::vector<std::thread> threads;
+		bool active = true;
+
+		foo(const rt::camera &cam, const rt::scene &scene, const rt::ray_accelerator &bvh, int width, int height,
+			std::random_device &rnd, int render_threads)
+		{
+			contexts.reserve(render_threads);
+			for (int i = 0; i < render_threads; i++)
+				contexts.emplace_back(cam, scene, bvh, width, height, rnd());
+
+			auto render_task = [this](rt::path_tracer &ctx)
+			{
+				while (this->active)
+					ctx.sample_image();
+			};
+
+			threads.reserve(render_threads);
+			for (int i = 0; i < render_threads; i++)
+				threads.emplace_back(render_task, std::ref(contexts[i]));
+		}
 	};
 
+	
+	foo F(cam, scene, bvh, width, height, rnd, render_threads);
+	
+
 	// Spawn rendering threads
-	std::vector<std::thread> threads;
-	threads.reserve(render_threads);
-	for (int i = 0; i < render_threads; i++)
-		threads.emplace_back(render_task, std::ref(contexts[i]));
+	
+	
 
 	// Start time
 	auto t_start = std::chrono::high_resolution_clock::now();
@@ -209,7 +225,7 @@ int main(int argc, char **argv)
 		// The ctx context is used as an accumulator
 		sample_count = 0;
 		std::fill(buffer.begin(), buffer.end(), glm::vec3{0.f});
-		for (auto &c : contexts)
+		for (auto &c : F.contexts)
 		{
 			std::transform(
 					c.get_image().cbegin(), c.get_image().cend(),
@@ -251,8 +267,8 @@ int main(int argc, char **argv)
 			<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / sample_count * render_threads << std::endl;
 	}
 
-	active = false;
-	for (auto &t : threads)
+	F.active = false;
+	for (auto &t : F.threads)
 		t.join();
 
 	preview_thread.join();

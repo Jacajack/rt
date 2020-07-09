@@ -30,7 +30,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS_DEBUG_STR}")
 
 # Release compilation flags
 set( CXX_FLAGS_RELEASE_LIST
-	# "-g"
+	"-g"
 	# "-pg"
 	# "-s"
 	"-O3"
@@ -50,6 +50,7 @@ link_libraries(
 	"sfml-window"
 	"sfml-graphics"
 	"assimp"
+	"tbb"
 )
 
 add_executable(
