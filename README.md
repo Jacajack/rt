@@ -1,6 +1,6 @@
 # rt
 
-Another excercise in programming...
+Another exercise in programming...
 
 <hr>
 
