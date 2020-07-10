@@ -56,10 +56,15 @@ void bvh_tree::build_tree()
 
 		// Parent bounding box surface area and triangle count
 		float Sp = it->bounding_volume.get_surface_area();
-		int np = it->end - it->begin;
+		long np = it->end - it->begin;
+
+		using split_info = std::tuple<
+			std::unique_ptr<std::vector<rt::triangle>>,
+			long,
+			float>;
 
 		// Calculates all possible split costs for given axis 
-		auto find_best_split = [&](int &best_split, float &best_cost, float glm::vec3::* axis)
+		auto find_best_split = [&](float glm::vec3::* axis)->split_info
 		{
 			auto data = std::make_unique<std::vector<rt::triangle>>(it->begin, it->end);
 
@@ -70,8 +75,9 @@ void bvh_tree::build_tree()
 				return c1.*axis < c2.*axis;
 			});
 
-			// Reset cost
-			best_cost = HUGE_VALF;
+			// Default cost and split
+			float best_cost = HUGE_VALF;
+			long best_split = 0;
 
 			// AAB collection
 			aabb_collection lcol, rcol(data->begin(), data->end());
@@ -81,8 +87,8 @@ void bvh_tree::build_tree()
 			{
 				lcol.push(split->get_aabb());
 				rcol.pop(split->get_aabb());
-				int nl = split - data->begin() + 1;
-				int nr = data->end() - split - 1;
+				long nl = split - data->begin() + 1;
+				long nr = data->end() - split - 1;
 
 				aabb boxl{lcol.get_aabb()}, boxr{rcol.get_aabb()};
 
@@ -99,46 +105,47 @@ void bvh_tree::build_tree()
 				}
 			}
 
-			return std::move(data);
+			return {std::move(data), best_split, best_cost};
 		};
-
-		// Best split index and cost
-		int best_split = 0;
-		float best_cost;
-
-		// Costs and split points
-		float cost_x, cost_y, cost_z;
-		int split_x, split_y, split_z;
 
 		// Async flags depending on triangle count
 		auto async_policy = (it->end - it->begin) > 10 ? std::launch::async : std::launch::deferred;
 
 		// Find best split point in all axes
-		auto fut_x = std::async(async_policy, find_best_split, std::ref(split_x), std::ref(cost_x), &glm::vec3::x);
-		auto fut_y = std::async(async_policy, find_best_split, std::ref(split_y), std::ref(cost_y), &glm::vec3::y);
-		auto fut_z = std::async(async_policy, find_best_split, std::ref(split_z), std::ref(cost_z), &glm::vec3::z);
+		auto fut_x = std::async(async_policy, find_best_split, &glm::vec3::x);
+		auto fut_y = std::async(async_policy, find_best_split, &glm::vec3::y);
+		auto fut_z = std::async(async_policy, find_best_split, &glm::vec3::z);
 		
-		// Best data set
-		std::unique_ptr<std::vector<triangle>> best_data;
+		// Split info for each axis
+		std::unique_ptr<std::vector<triangle>> data_x, data_y, data_z;
+		float cost_x, cost_y, cost_z;
+		long split_x, split_y, split_z;
 
 		// Get data from the futures
-		auto data_x = fut_x.get();
-		auto data_y = fut_y.get();
-		auto data_z = fut_z.get();
+		std::tie(data_x, split_x, cost_x) = fut_x.get();
+		std::tie(data_y, split_y, cost_y) = fut_y.get();
+		std::tie(data_z, split_z, cost_z) = fut_z.get();
 
-		if (cost_x < cost_y && cost_x < cost_z) // Best in X axis
-		{
-			best_data = std::move(data_x);
-			best_split = split_x;
-			best_cost = cost_x;
-		}
-		else if (cost_y < cost_x && cost_y < cost_z) // Best in Y
+		// Best split index and cost
+		std::unique_ptr<std::vector<triangle>> best_data;
+		float best_cost;
+		long best_split = 0;
+
+		// Assume best split in X
+		best_data = std::move(data_x);
+		best_split = split_x;
+		best_cost = cost_x;
+
+		// Check Y
+		if (cost_y < best_cost)
 		{
 			best_data = std::move(data_y);
 			best_split = split_y;
 			best_cost = cost_y;
 		}
-		else // Best in Z
+		
+		// Check Z
+		if (cost_z < best_cost)
 		{
 			best_data = std::move(data_z);
 			best_split = split_z;
