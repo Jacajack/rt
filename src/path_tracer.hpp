@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <random>
+#include <chrono>
+#include <iosfwd>
 #include "scene.hpp"
 #include "camera.hpp"
 #include "ray_accelerator.hpp"
@@ -19,6 +21,8 @@ namespace rt {
 */
 class path_tracer
 {
+	friend std::ostream &operator<<(std::ostream &, const path_tracer &);
+
 public:
 	path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, int width, int height, unsigned long seed);
 
@@ -49,6 +53,12 @@ public:
 		return m_dist(m_rng);
 	}
 
+	//! Returns time elapsed for the last sample
+	std::chrono::duration<double> get_last_sample_time() const
+	{
+		return m_t_last;
+	}
+
 private:
 	// Camera, scene and ray accelerator
 	const rt::camera *m_camera;
@@ -61,6 +71,9 @@ private:
 	//! Uniform 0-1 float distrubition
 	mutable std::uniform_real_distribution<float> m_dist;
 
+	//! Time taken for the last sample
+	std::chrono::duration<double> m_t_last;
+
 	//! Image data
 	//! \todo maybe move this out?
 	std::vector<glm::vec3> m_pixels;
@@ -68,5 +81,7 @@ private:
 	int m_sample_count;
 } __attribute__((aligned(RT_CACHE_LINE_SIZE)));
 
+
+extern std::ostream &operator<<(std::ostream &, const path_tracer &);
 
 }

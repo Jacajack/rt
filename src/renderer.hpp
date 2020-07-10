@@ -2,6 +2,8 @@
 #include <vector>
 #include <thread>
 #include <memory>
+#include <atomic>
+#include <iosfwd>
 
 #include "path_tracer.hpp"
 #include "camera.hpp"
@@ -15,6 +17,8 @@ namespace rt {
 */
 class renderer
 {
+	friend std::ostream &operator<<(std::ostream &, const renderer &);
+
 public:
 	renderer(
 		const scene &sc,
@@ -24,6 +28,11 @@ public:
 		int height,
 		unsigned long seed,
 		int num_threads);
+
+	~renderer()
+	{
+		stop();
+	}
 
 	/**
 		Starts path tracing
@@ -63,7 +72,7 @@ private:
 	const ray_accelerator *m_accelerator;
 
 	//! Active flag
-	std::unique_ptr<bool> m_active_flag;
+	std::unique_ptr<std::atomic<bool>> m_active_flag;
 
 	//! Path tracers
 	std::vector<rt::path_tracer> m_tracers;
@@ -82,7 +91,9 @@ private:
 	mutable std::vector<std::uint8_t> m_raw;
 
 	//! Ran by each rendering thread
-	static void render_thread(path_tracer *ctx, const bool *active);
+	static void render_thread(path_tracer &ctx, const std::atomic<bool> &active);
 };
+
+extern std::ostream &operator<<(std::ostream &, const renderer &);
 
 }

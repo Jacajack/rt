@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include <random>
+#include <iostream>
 
 using rt::renderer;
 
@@ -14,7 +15,7 @@ renderer::renderer(
 	m_scene(&sc),
 	m_camera(&cam),
 	m_accelerator(&accel),
-	m_active_flag(std::make_unique<bool>(false)),
+	m_active_flag(std::make_unique<std::atomic<bool>>(false)),
 	m_thread_count(num_threads),
 	m_width(width),
 	m_height(height),
@@ -49,7 +50,7 @@ void renderer::start()
 
 	// Spawn threads
 	for (int i = 0; i < m_thread_count; i++)
-		m_threads.emplace_back(renderer::render_thread, &m_tracers[i], m_active_flag.get());
+		m_threads.emplace_back(renderer::render_thread, std::ref(m_tracers[i]), std::ref(*m_active_flag));
 }
 
 void renderer::stop()
@@ -86,10 +87,10 @@ void renderer::clear()
 	m_sample_count = 0;
 }
 
-void renderer::render_thread(path_tracer *ctx, const bool *active)
+void renderer::render_thread(path_tracer &ctx, const std::atomic<bool> &active)
 {
-	while (*active)
-		ctx->sample_image();
+	while (active)
+		ctx.sample_image();
 }
 
 /**
@@ -147,4 +148,16 @@ const std::vector<glm::vec3> &renderer::get_hdr_image() const
 const std::vector<std::uint8_t> &renderer::get_ldr_image() const
 {
 	return m_raw;
+}
+
+std::ostream &rt::operator<<(std::ostream &s, const renderer &r)
+{
+	// Print last times per sample
+	s << "s/S :\t";
+	for (auto &t : r.m_tracers)
+	{
+		s << t.get_last_sample_time().count() << "\t";
+	}
+
+	return s;
 }

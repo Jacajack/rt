@@ -1,5 +1,6 @@
 #include "path_tracer.hpp"
 #include <algorithm>
+#include <iostream>
 
 using rt::path_tracer;
 
@@ -98,6 +99,8 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos) const
 */
 void path_tracer::sample_image()
 {
+	auto t_start = std::chrono::high_resolution_clock::now();
+
 	for (int y = 0; y < m_resolution.y; y++)
 	{
 		for (int x = 0; x < m_resolution.x; x++)
@@ -114,9 +117,20 @@ void path_tracer::sample_image()
 	}
 
 	m_sample_count++;
+
+	// Measure time
+	auto t_end = std::chrono::high_resolution_clock::now();
+	m_t_last = t_end - t_start;
 }
 
 void path_tracer::clear_image()
 {
 	std::fill(m_pixels.begin(), m_pixels.end(), glm::vec3{0.f});
+}
+
+std::ostream &operator<<(std::ostream &s, const path_tracer &pt)
+{
+	s << "rt::path_tracer - " << pt.get_sample_count() << " samples - " 
+		<< pt.get_last_sample_time().count() << "s per sample";
+	return s;
 }
