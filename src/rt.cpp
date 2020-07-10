@@ -27,43 +27,6 @@
 #include "materials/pbr_material.hpp"
 #include "materials/glass.hpp"
 
-static void sfml_thread_main(std::uint8_t *pixel_data, int width, int height, std::mutex *pixel_data_mutex)
-{
-	// Open a SFML window
-	sf::RenderWindow window(sf::VideoMode(width, height), "rt");
-
-	// The displayed texture
-	sf::Texture tex;
-	tex.create(width, height);
-
-	// Sprite needed for displaying the texture
-	sf::Sprite spr;
-	spr.setTexture(tex);
-	spr.setPosition({0, 0});
-
-	// Main loop
-	while (window.isOpen())
-	{
-		// Process events
-		for (sf::Event ev{}; window.pollEvent(ev);)
-		{
-			if (ev.type == sf::Event::Closed)
-				window.close();
-		}
-
-		// Draw current buffer
-		{
-			std::lock_guard lock{*pixel_data_mutex};
-			tex.update(pixel_data);
-			window.draw(spr);
-		}
-
-		window.display();
-	}
-}
-
-
-
 int main(int argc, char **argv)
 {
 	using namespace std::chrono_literals;
@@ -72,15 +35,7 @@ int main(int argc, char **argv)
 	int width = 1024;
 	int height = 1024;
 	std::vector<uint8_t> pixels(width * height * 4);
-	std::mutex pixels_mutex;
 
-	// This thread displays contents of 'pixels' in real time
-	std::packaged_task<void()> preview_task{[&pixels, &pixels_mutex, width, height](){
-		sfml_thread_main(&pixels[0], width, height, &pixels_mutex);
-	}};
-	auto preview_task_fut = preview_task.get_future();
-	std::thread preview_thread(std::move(preview_task));
-	
 	// The scene and camera
 	rt::scene scene;
 
@@ -176,8 +131,24 @@ int main(int argc, char **argv)
 	// Main random device
 	std::random_device rnd;
 
+	
+	// ----------------------------------------------------------------------------
+	
+
+	// Open a SFML window
+	sf::RenderWindow window(sf::VideoMode(width, height), "rt");
+
+	// The displayed texture
+	sf::Texture tex;
+	tex.create(width, height);
+
+	// Sprite needed for displaying the texture
+	sf::Sprite spr;
+	spr.setTexture(tex);
+	spr.setPosition({0, 0});
+
 	// The renderer
-	const int render_threads = 2;
+	const int render_threads = 6;
 	rt::renderer ren(scene, cam, bvh, width, height, rnd(), render_threads);
 	ren.start();
 
@@ -185,29 +156,39 @@ int main(int argc, char **argv)
 	auto t_start = std::chrono::high_resolution_clock::now();
 	int samples = 0, last_samples = 0;
 
-	// While the preview is open
-	for (int i = 1; preview_task_fut.wait_for(0ms) != std::future_status::ready; i++)
+	// Main loop
+	while (window.isOpen())
 	{
-		ren.compute_result();
-
+		// Process events
+		for (sf::Event ev{}; window.pollEvent(ev);)
 		{
-			auto &img = ren.get_ldr_image();
-			std::lock_guard lock{pixels_mutex};
-			std::copy(img.begin(), img.end(), pixels.begin());
-			last_samples = samples;
-			samples = ren.get_sample_count();
+			if (ev.type == sf::Event::Closed)
+				window.close();
 		}
 
+		// Compute temp result
+		ren.compute_result();
+		std::copy(ren.get_ldr_image().begin(), ren.get_ldr_image().end(), pixels.begin());
+		last_samples = samples;
+		samples = ren.get_sample_count();
+
+		// Print some info
 		auto t_now = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> t_total = t_now - t_start;
-
 		if (samples != last_samples)
-			std::cerr << std::setw(4) << samples << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
+		{
+			std::cout << std::setw(4) << samples << " samples - time = " << std::setw(8) << std::fixed << t_total.count() 
 				<< "s, per sample = " << std::setw(8) << std::fixed << t_total.count() / samples
 				<< "s, per sample/th = " << std::setw(8) << std::fixed << t_total.count() / samples * render_threads << std::endl;
+			std::cout << ren << std::endl;
+		}
+		
+		// Draw
+		tex.update(pixels.data());
+		window.draw(spr);
+		window.display();
 	}
 
 	ren.stop();
-	preview_thread.join();
 	return EXIT_SUCCESS;	
 }
