@@ -2,6 +2,7 @@
 
 #include <stack>
 #include <memory>
+#include <future>
 
 #include "ray.hpp"
 #include "containers/linear_stack.hpp"
@@ -109,13 +110,21 @@ void bvh_tree::build_tree()
 		float cost_x, cost_y, cost_z;
 		int split_x, split_y, split_z;
 
+		// Async flags depending on triangle count
+		auto async_policy = (it->end - it->begin) > 10 ? std::launch::async : std::launch::deferred;
+
 		// Find best split point in all axes
-		auto data_x = find_best_split(split_x, cost_x, &glm::vec3::x);
-		auto data_y = find_best_split(split_y, cost_y, &glm::vec3::y);
-		auto data_z = find_best_split(split_z, cost_z, &glm::vec3::z);
+		auto fut_x = std::async(async_policy, find_best_split, std::ref(split_x), std::ref(cost_x), &glm::vec3::x);
+		auto fut_y = std::async(async_policy, find_best_split, std::ref(split_y), std::ref(cost_y), &glm::vec3::y);
+		auto fut_z = std::async(async_policy, find_best_split, std::ref(split_z), std::ref(cost_z), &glm::vec3::z);
 		
 		// Best data set
 		std::unique_ptr<std::vector<triangle>> best_data;
+
+		// Get data from the futures
+		auto data_x = fut_x.get();
+		auto data_y = fut_y.get();
+		auto data_z = fut_z.get();
 
 		if (cost_x < cost_y && cost_x < cost_z) // Best in X axis
 		{
