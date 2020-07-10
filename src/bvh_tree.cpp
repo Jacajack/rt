@@ -1,8 +1,7 @@
 #include "bvh_tree.hpp"
 
 #include <stack>
-#include <queue>
-#include <set>
+#include <memory>
 
 #include "ray.hpp"
 #include "containers/linear_stack.hpp"
@@ -54,39 +53,35 @@ void bvh_tree::build_tree()
 		// Cost of traversal
 		constexpr float ct = 4.0f;
 
-		// Best split information - cost, index and axis
-		float best_cost = HUGE_VALF;
-		float glm::vec3::* best_axis;
-		int best_split = 0;
-
 		// Parent bounding box surface area and triangle count
 		float Sp = it->bounding_volume.get_surface_area();
 		int np = it->end - it->begin;
 
-		// Sorts elements in given axis
-		auto sort_in_axis = [&](float glm::vec3::* axis){
-			std::sort(it->begin, it->end, [&](auto &t1, auto &t2){
+		// Calculates all possible split costs for given axis 
+		auto find_best_split = [&](int &best_split, float &best_cost, float glm::vec3::* axis)
+		{
+			auto data = std::make_unique<std::vector<rt::triangle>>(it->begin, it->end);
+
+			// Sort the data
+			std::sort(data->begin(), data->end(), [&](auto &t1, auto &t2){
 				glm::vec3 c1 = (t1.vertices[0] + t1.vertices[1] + t1.vertices[2]) / 3.f;
 				glm::vec3 c2 = (t2.vertices[0] + t2.vertices[1] + t2.vertices[2]) / 3.f;
 				return c1.*axis < c2.*axis;
 			});
-		};
 
-		// Calculates all possible split costs for given axis 
-		auto find_best_split = [&](float glm::vec3::* axis)
-		{
-			sort_in_axis(axis);
-			aabb_collection lcol, rcol(it->begin, it->end);
+			// Reset cost
+			best_cost = HUGE_VALF;
 
-			// if (it->end - it->begin < 4) return;
+			// AAB collection
+			aabb_collection lcol, rcol(data->begin(), data->end());
 
 			// Cost calculation for each possible split
-			for (auto split = it->begin; split != it->end - 1; split++)
+			for (auto split = data->begin(); split != data->end() - 1; split++)
 			{
 				lcol.push(split->get_aabb());
 				rcol.pop(split->get_aabb());
-				int nl = split - it->begin + 1;
-				int nr = it->end - split - 1;
+				int nl = split - data->begin() + 1;
+				int nr = data->end() - split - 1;
 
 				aabb boxl{lcol.get_aabb()}, boxr{rcol.get_aabb()};
 
@@ -99,23 +94,54 @@ void bvh_tree::build_tree()
 				if (c < best_cost)
 				{
 					best_cost = c;
-					best_split = split - it->begin + 1; // Mind this +1!
-					best_axis = axis;
+					best_split = split - data->begin() + 1; // Mind this +1!
 				}
 			}
+
+			return std::move(data);
 		};
 
+		// Best split index and cost
+		int best_split = 0;
+		float best_cost;
+
+		// Costs and split points
+		float cost_x, cost_y, cost_z;
+		int split_x, split_y, split_z;
+
 		// Find best split point in all axes
-		find_best_split(&glm::vec3::x);
-		find_best_split(&glm::vec3::y);
-		find_best_split(&glm::vec3::z);
+		auto data_x = find_best_split(split_x, cost_x, &glm::vec3::x);
+		auto data_y = find_best_split(split_y, cost_y, &glm::vec3::y);
+		auto data_z = find_best_split(split_z, cost_z, &glm::vec3::z);
+		
+		// Best data set
+		std::unique_ptr<std::vector<triangle>> best_data;
+
+		if (cost_x < cost_y && cost_x < cost_z) // Best in X axis
+		{
+			best_data = std::move(data_x);
+			best_split = split_x;
+			best_cost = cost_x;
+		}
+		else if (cost_y < cost_x && cost_y < cost_z) // Best in Y
+		{
+			best_data = std::move(data_y);
+			best_split = split_y;
+			best_cost = cost_y;
+		}
+		else // Best in Z
+		{
+			best_data = std::move(data_z);
+			best_split = split_z;
+			best_cost = cost_z;
+		}
 
 		// Compare best split cost to 'leaving as is' cost
 		if (best_cost > np * ci)
 			continue;
 
-		// Sort the elements in the best axis
-		sort_in_axis(best_axis);
+		// Copy the sorted data back and calculate splitting iterator
+		std::copy(best_data->begin(), best_data->end(), it->begin);
 		auto split = it->begin + best_split;
 
 		/*
