@@ -15,9 +15,6 @@ namespace rt {
 	Path tracing context - use one per thread. Context contains
 	data and objects reused between subsequent pixel sampling
 	operations.
-
-	\note No need to use linear_stacks here, because the context
-	are not created often
 */
 class path_tracer
 {
