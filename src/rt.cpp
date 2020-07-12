@@ -31,10 +31,12 @@ int main(int argc, char **argv)
 {
 	using namespace std::chrono_literals;
 
+	// The window size
+	glm::ivec2 window_size{1024, 1024};
+
 	// The image data
-	int width = 1024;
-	int height = 1024;
-	std::vector<uint8_t> pixels(width * height * 4);
+	glm::ivec2 render_size{1024, 1024};
+	std::vector<uint8_t> pixels(render_size.x * render_size.y * 4);
 
 	// The scene and camera
 	rt::scene scene;
@@ -127,6 +129,7 @@ int main(int argc, char **argv)
 	// Camera setup
 	rt::camera cam({0, 2, 6}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
 	cam.look_at({0, 0.5, 0});
+	scene.set_camera(cam);
 
 	// Main random device
 	std::random_device rnd;
@@ -136,11 +139,11 @@ int main(int argc, char **argv)
 	
 
 	// Open a SFML window
-	sf::RenderWindow window(sf::VideoMode(width, height), "rt");
+	sf::RenderWindow window(sf::VideoMode(window_size.x, window_size.y), "rt");
 
 	// The displayed texture
 	sf::Texture tex;
-	tex.create(width, height);
+	tex.create(window_size.x, window_size.y);
 
 	// Sprite needed for displaying the texture
 	sf::Sprite spr;
@@ -149,12 +152,16 @@ int main(int argc, char **argv)
 
 	// The renderer
 	const int render_threads = 6;
-	rt::renderer ren(scene, cam, bvh, width, height, rnd(), render_threads);
+	rt::renderer ren(scene, cam, bvh, render_size.x, render_size.y, rnd(), render_threads);
 	ren.start();
 
 	// Start time and sample count
 	auto t_start = std::chrono::high_resolution_clock::now();
 	int samples = 0, last_samples = 0;
+
+	// Changes with mouse drags
+	glm::vec2 drag_pos{0.f}, drag_start{0.f};
+	bool drag_pending = false;
 
 	// Main loop
 	while (window.isOpen())
@@ -162,8 +169,41 @@ int main(int argc, char **argv)
 		// Process events
 		for (sf::Event ev{}; window.pollEvent(ev);)
 		{
-			if (ev.type == sf::Event::Closed)
-				window.close();
+			switch (ev.type)
+			{
+				case sf::Event::MouseButtonPressed:
+				{
+					auto start = window.mapPixelToCoords(sf::Vector2i(ev.mouseButton.x, ev.mouseButton.y));
+					drag_start = glm::vec2{start.x, -start.y} / glm::vec2{window_size};
+					drag_pending = true;
+					break;
+				}
+
+				case sf::Event::MouseButtonReleased:
+				{
+					drag_pending = false;
+					break;
+				}
+
+				case sf::Event::MouseMoved:
+				{
+					if (!drag_pending) break;
+					auto current = window.mapPixelToCoords(sf::Vector2i(ev.mouseMove.x, ev.mouseMove.y));
+					glm::vec2 pos = glm::vec2{current.x, -current.y} / glm::vec2{window_size};
+					auto delta = pos - drag_start;
+					drag_pos += delta;
+					drag_start = pos;
+					std::cout << drag_pos.x << " " << drag_pos.y << std::endl;
+					break;
+				}
+
+				case sf::Event::Closed:
+					window.close();
+					break;
+
+				default:
+					break;
+			}			
 		}
 
 		// Compute temp result
@@ -185,6 +225,8 @@ int main(int argc, char **argv)
 		
 		// Draw
 		tex.update(pixels.data());
+		glm::vec2 preview_scale = glm::vec2{window_size} / glm::vec2{render_size};
+		spr.setScale(preview_scale.x, preview_scale.y);
 		window.draw(spr);
 		window.display();
 	}
