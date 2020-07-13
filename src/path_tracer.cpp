@@ -16,7 +16,7 @@ path_tracer::path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::r
 {
 }
 
-glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos) const
+glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, float p_extinct) const
 {
 	// Hit record and bounce/scatter
 	rt::ray_hit hit;
@@ -25,19 +25,19 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos) const
 	// Sampled pixel
 	glm::vec3 pixel{0.f};
 
-	// Path termination conditions
-	const float min_weight = 0.000;
-	const int max_depth = 40;
-
 	// Current ray
 	rt::ray r = m_camera->get_ray(pixel_pos);
 	glm::vec3 weight{1.f};
 	float ior = 1.f;
 	int depth = 0;
 
-	//! \todo teminate rays with Russain roulette instead
 	while (depth < max_depth)
 	{
+		// Russian roulette for path termination
+		if (get_rand() < p_extinct)
+			break;
+
+		weight /= 1.f - p_extinct;
 		hit = m_scene->cast_ray(r, *m_accelerator);
 		bounce = hit.material->get_bounce(*this, hit, ior);
 
