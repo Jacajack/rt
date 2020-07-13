@@ -95,6 +95,22 @@ public:
 	}
 
 	/**
+		Pixel access by coordinates
+	*/
+	T &pixel(const glm::ivec2 &pos)
+	{
+		return m_data[pos.y * m_width + pos.x];
+	}
+
+	/**
+		Pixel access by coordinates
+	*/
+	const T &pixel(const glm::ivec2 &pos) const
+	{
+		return m_data[pos.y * m_width + pos.x];
+	}
+
+	/**
 		Pixel access by coordinates (with bound check)
 	*/
 	T &at_pixel(int x, int y)
