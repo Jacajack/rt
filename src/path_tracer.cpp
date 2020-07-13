@@ -33,7 +33,7 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos) const
 	rt::ray r = m_camera->get_ray(pixel_pos);
 	glm::vec3 weight{1.f};
 	float ior = 1.f;
-	float depth = 0;
+	int depth = 0;
 
 	//! \todo teminate rays with Russain roulette instead
 	while (depth < max_depth)
