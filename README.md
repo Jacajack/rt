@@ -4,6 +4,10 @@ Another exercise in programming...
 
 <hr>
 
+2020-07-13 - Russian roulette for ray extinction, multithreading and other cool stuff:<br>
+<img src=screens/2020-07-13-1.png /><br>
+~1006 samples, 0.2299s per sample (1.37s per thread / 6), 0.05 ray extinction probability
+
 2020-07-08 - ray transmission and Russian roulette for reflection/transmission sampling:<br>
 <img src=screens/2020-07-08-1.png /><br>
 ~854 samples, 1.888s per sample
