@@ -27,67 +27,34 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos) const
 
 	// Path termination conditions
 	const float min_weight = 0.000;
-	const int max_depth = 100;
+	const int max_depth = 40;
 
-	// Ray parameters
-	rt::ray_branch current;
-	current.r = m_camera->get_ray(pixel_pos);
-	current.weight = glm::vec3{1.f};
-	current.ior = 1.f;
-	current.depth = 0;
+	// Current ray
+	rt::ray r = m_camera->get_ray(pixel_pos);
+	glm::vec3 weight{1.f};
+	float ior = 1.f;
+	float depth = 0;
 
-	while (true)
+	//! \todo teminate rays with Russain roulette instead
+	while (depth < max_depth)
 	{
-		hit = m_scene->cast_ray(current.r, *m_accelerator);
-		bounce = hit.material->get_bounce(*this, hit, current.ior);
+		hit = m_scene->cast_ray(r, *m_accelerator);
+		bounce = hit.material->get_bounce(*this, hit, ior);
 
 		// Emissive materials terminate rays
 		// and contribute to the pixel through
 		// ray's weight
 		if (bounce.emission != glm::vec3{0.f})
 		{
-			pixel += current.weight * bounce.emission;
+			pixel += weight * bounce.emission;
 			break;
 		}
 		else
 		{
-			if (current.depth > 40) break;
-
-			// bool spawn_reflection = 
-				// (glm::length(bounce.brdf * current.weight) > min_weight)
-				// (current.depth + 1 < max_depth);
-
-			// bool spawn_transmission = 
-				// (glm::length(bounce.btdf * current.weight) > min_weight)
-				// (current.depth + 1 < max_depth);
-
-			float R = glm::length(bounce.brdf) / bounce.reflection_pdf;
-			float T = glm::length(bounce.btdf);
-			
-			// No outgoing rays
-			if (R + T == 0.f) break;
-
-			float p_r = R / (R + T);
-			float p_t = T / (R + T);
-
-			// Uniform random variable
-			float x = this->get_rand();
-
-			if (x < p_r) // Sample reflection
-			{
-				// Only traverse reflection ray
-				current.r = bounce.reflected_ray;
-				current.weight *= bounce.brdf / bounce.reflection_pdf / p_r;
-				current.depth++;
-			}
-			else // Sample transmission
-			{
-				// Only traverse transmission ray
-				current.r = bounce.transmitted_ray;
-				current.weight *= bounce.btdf / p_t;
-				current.ior = bounce.transmission_ior;
-				current.depth++;
-			}
+			r = bounce.new_ray;
+			weight *= bounce.bsdf;
+			ior = bounce.ior;
+			depth++;
 		}
 	}
 

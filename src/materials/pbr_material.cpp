@@ -160,13 +160,10 @@ rt::ray_bounce pbr_material::get_bounce(const rt::path_tracer &ctx, const rt::ra
 
 	// Scattering properties
 	rt::ray_bounce bounce;
-	bounce.reflected_ray = reflected_ray;
-	bounce.reflection_pdf = pdf;
-	bounce.brdf = brdf * glm::max(glm::dot(hit.normal, wi), 0.f);
-	
-	// Transmission
-	bounce.btdf = glm::vec3{0.f};
-	
+	bounce.new_ray = reflected_ray;
+	bounce.bsdf = brdf * glm::max(glm::dot(hit.normal, wi), 0.f) / pdf;
+	bounce.ior = ior;
+
 	// Emission
 	bounce.emission = m_emission;
 

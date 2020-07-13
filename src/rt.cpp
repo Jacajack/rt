@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 	
 	// Golden sphere
 	rt::primitive_collection s5{rt::sphere{{5, 3, -4}, 3}};
-	rt::scene_object sphere5_obj{s5, gold_mat};
+	rt::scene_object sphere5_obj{s5, better_red_mat};
 	scene.add_object(&sphere5_obj);
 
 	// Glass sphere

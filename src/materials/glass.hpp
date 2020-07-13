@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../material.hpp"
+#include "../path_tracer.hpp"
 
 namespace rt {
 
@@ -49,24 +50,26 @@ inline rt::ray_bounce simple_glass_material::get_bounce(const rt::path_tracer &c
 	if (glm::length(T) == 0.f)
 		fresnel = 1.f;
 
-	// Reflected ray
-	rt::ray rr;
-	rr.origin = hit.position + N * 0.001f;
-	rr.direction = glm::reflect(hit.direction, N);
-
-	// New ray
-	rt::ray r;
-	r.origin = hit.position + hit.direction * 0.001f;
-	r.direction = T;
-
+	// New ray and bounce
 	rt::ray_bounce bounce;
-	bounce.brdf = glm::vec3{fresnel};
-	bounce.reflection_pdf = 1.f;
-	bounce.reflected_ray = rr;
 
-	bounce.transmission_ior = new_ior;
-	bounce.btdf = m_color * (1.f - fresnel);
-	bounce.transmitted_ray = r;
+	// Fresnel term determines amount of REFLECTED light
+	if (ctx.get_rand() < fresnel)
+	{
+		// Reflect
+		bounce.new_ray.origin = hit.position + N * 0.001f;
+		bounce.new_ray.direction = glm::reflect(hit.direction, N);
+		bounce.bsdf = glm::vec3{1.f};
+		bounce.ior = 1.f;
+	}
+	else
+	{
+		// Transmit
+		bounce.new_ray.origin = hit.position + hit.direction * 0.001f;
+		bounce.new_ray.direction = T;
+		bounce.bsdf = glm::vec3{m_color};
+		bounce.ior = new_ior;
+	}
 
 	bounce.emission = glm::vec3{0.f};
 

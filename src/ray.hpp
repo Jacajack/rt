@@ -61,58 +61,19 @@ public:
 };
 
 /**
-	Determines reflective, transmissive and emissive properties of
-	a surface. Also determines weights of outgoing (possibly branching)
-	rays.
-
-	Acquired from ray_hit structure by calling get_bounced_ray()
+	Represents scattering event and emission. 
 */
 struct ray_bounce
 {
-	//! Reflected ray
-	ray reflected_ray;
-	glm::vec3 brdf;
-	float reflection_pdf;
-
-	//! Transmitted ray
-	ray transmitted_ray;
-	glm::vec3 btdf;
-	float transmission_ior;
+	//! Scatter
+	rt::ray new_ray;
+	glm::vec3 bsdf;
+	float ior;
 
 	//! Emission value
 	glm::vec3 emission;
 };
 
-/**
-	Represents a ray branching point - stores parent
-	ray's parameters and the new ray to be explored,
-	so tracing can be later continued from the branching point
-
-	\warning Deprecated - and will likely be removed
-*/
-struct ray_branch
-{
-	ray_branch() = default;
-
-	ray_branch(const rt::ray &R, const glm::vec3 &w, float i, int d) :
-		r(R),
-		weight(w),
-		ior(i),
-		depth(d)
-	{}
-
-	//! The new ray
-	rt::ray r;
-
-	//! Parent ray's influence on pixel color
-	glm::vec3 weight;
-
-	//! IOR of the parent ray
-	float ior;
-
-	//! Depth
-	int depth;
-};
 
 // Forward declarations of material and scene object
 class abstract_material;
@@ -135,13 +96,6 @@ struct ray_hit
 	{
 		return distance < rhs.distance;
 	}
-
-	/**
-		Based on two uniformly distributed random variables,
-		returns scattering and emission information and new rays
-		to be sampled.
-	*/
-	ray_bounce get_bounce(const rt::path_tracer &ctx, float ior) const;
 };
 
 }
