@@ -24,7 +24,7 @@ public:
 	path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, int width, int height, unsigned long seed);
 
 	//! Samples one pixel
-	glm::vec3 sample_pixel(const glm::vec2 &pixel_pos, int max_depth = 40, float p_extinct = 0.05f) const;
+	glm::vec3 sample_pixel(const glm::vec2 &pixel_pos, int max_depth = 40, float p_extinct = 0.0f) const;
 	
 	//! Samples each pixel in the stored image
 	void sample_image();
