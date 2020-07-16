@@ -89,7 +89,7 @@ void renderer::clear()
 void renderer::render_thread(path_tracer &ctx, const std::atomic<bool> &active)
 {
 	while (active)
-		ctx.sample_image();
+		ctx.sample_image(40, 0.f, &active);
 }
 
 /**
