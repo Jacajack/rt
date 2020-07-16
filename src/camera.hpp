@@ -15,6 +15,8 @@ public:
 	void set_fov(float fov);
 	void set_aspect_ratio(float aspect);
 
+	const glm::vec3 &get_position() const;
+	glm::mat3 get_matrix() const;
 	inline ray get_ray(const glm::vec2 &pixel_pos) const;
 
 private:

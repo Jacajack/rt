@@ -48,6 +48,15 @@ void camera::set_aspect_ratio(float aspect)
 	update_near_plane();
 }
 
+const glm::vec3 &camera::get_position() const
+{
+	return m_position;
+}
+
+glm::mat3 camera::get_matrix() const
+{
+	return glm::mat3{-m_left, m_up, m_forward};
+}
 
 
 void camera::update_near_plane()
