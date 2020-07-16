@@ -62,9 +62,7 @@ public:
 	*/
 	void compute_result();
 
-	const int get_sample_count() const;
-	const std::vector<glm::vec3> &get_hdr_image() const;
-	const std::vector<std::uint8_t> &get_ldr_image() const;
+	const rt::sampled_hdr_image &get_image() const;
 
 private:
 	const scene *m_scene;
@@ -77,18 +75,15 @@ private:
 	//! Path tracers
 	std::vector<rt::path_tracer> m_tracers;
 
+	//! Images from path tracers
+	std::vector<rt::sampled_hdr_image> m_images;
+
 	//! Threads running path tracing
 	std::vector<std::thread> m_threads;
 	int m_thread_count;
 
-	//! HDR image
-	int m_width;
-	int m_height;
-	mutable std::vector<glm::vec3> m_hdr;
-	mutable int m_sample_count;
-
-	//! Raw 8-bit RGBA image (tonemapped from m_hdr)
-	mutable std::vector<std::uint8_t> m_raw;
+	//! Resulting image
+	rt::sampled_hdr_image m_image;
 
 	//! Ran by each rendering thread
 	static void render_thread(path_tracer &ctx, const std::atomic<bool> &active);

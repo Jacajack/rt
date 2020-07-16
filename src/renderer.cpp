@@ -17,15 +17,18 @@ renderer::renderer(
 	m_accelerator(&accel),
 	m_active_flag(std::make_unique<std::atomic<bool>>(false)),
 	m_thread_count(num_threads),
-	m_width(width),
-	m_height(height),
-	m_hdr(width * height, glm::vec3{0.f}),
-	m_sample_count(0),
-	m_raw(width * height * 4, 0)
+	m_image(width, height)
 {
 	// Random generator used only for initialization
 	// of path tracers' generators
 	std::mt19937 init_rnd(seed);
+
+	// Initialize output images
+	m_images.reserve(m_thread_count);
+	for (int i = 0; i < m_thread_count; i++)
+	{
+		m_images.emplace_back(width, height);
+	}
 
 	// Initialize all path tracers
 	m_tracers.reserve(m_thread_count);
@@ -35,8 +38,7 @@ renderer::renderer(
 			*m_camera,
 			*m_scene,
 			*m_accelerator,
-			m_width,
-			m_height,
+			m_images[i],
 			init_rnd());
 	}
 }
@@ -81,10 +83,7 @@ void renderer::clear()
 {
 	for (auto &t : m_tracers)
 		t.clear_image();
-
-	std::fill(m_hdr.begin(), m_hdr.end(), glm::vec3{0.f});
-	std::fill(m_raw.begin(), m_raw.end(), 0);
-	m_sample_count = 0;
+	m_image.clear();
 }
 
 void renderer::render_thread(path_tracer &ctx, const std::atomic<bool> &active)
@@ -98,56 +97,16 @@ void renderer::render_thread(path_tracer &ctx, const std::atomic<bool> &active)
 */
 void renderer::compute_result()
 {
-	m_sample_count = 0;
-	std::fill(m_hdr.begin(), m_hdr.end(), glm::vec3{0.f});
+	m_image.clear();
 
-	// Compute HDR
-	for (auto &t : m_tracers)
-	{
-		std::transform(
-					t.get_image().cbegin(), t.get_image().cend(),
-					m_hdr.begin(),
-					m_hdr.begin(),
-					std::plus<glm::vec3>()
-			);
-		m_sample_count += t.get_sample_count();
-	}
-
-	for (auto &p : m_hdr)
-		p /= static_cast<float>(m_sample_count);
-	
-	// Tonemap
-	std::uint8_t *ptr = m_raw.data();
-	for (int y = 0; y < m_height; y++)
-	{
-		for (int x = 0; x < m_width; x++)
-		{
-			// Reinhard tonemapping and sRGB correction
-			glm::vec3 pix =	m_hdr[y * m_width + x];
-			pix = pix / (pix + 1.f);
-			pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
-
-			*ptr++ = pix.r * 255.99f;
-			*ptr++ = pix.g * 255.99f;
-			*ptr++ = pix.b * 255.99f;
-			*ptr++ = 255;
-		}
-	}
+	// Compute resulting image
+	for (int i = 0; i < m_thread_count; i++)
+		m_image += m_images[i];
 }
 
-const int renderer::get_sample_count() const
+const rt::sampled_hdr_image &renderer::get_image() const
 {
-	return m_sample_count;
-}
-
-const std::vector<glm::vec3> &renderer::get_hdr_image() const
-{
-	return m_hdr;
-}
-
-const std::vector<std::uint8_t> &renderer::get_ldr_image() const
-{
-	return m_raw;
+	return m_image;
 }
 
 std::ostream &rt::operator<<(std::ostream &s, const renderer &r)

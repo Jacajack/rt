@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 					{
 						std::stringstream ss;
 						ss << std::time(nullptr);
-						ss << "-" << ren.get_sample_count() << "S";
+						ss << "-" << ren.get_image().get_sample_count() << "S";
 						ss << ".png"; 
 						spr.getTexture()->copyToImage().saveToFile(ss.str());
 					}
@@ -258,9 +258,9 @@ int main(int argc, char **argv)
 
 		// Compute temp result
 		ren.compute_result();
-		std::copy(ren.get_ldr_image().begin(), ren.get_ldr_image().end(), pixels.begin());
+		rt::image<rt::rgba_pixel> img(ren.get_image());
 		last_samples = samples;
-		samples = ren.get_sample_count();
+		samples = ren.get_image().get_sample_count();
 
 		// Print some info
 		auto t_now = std::chrono::high_resolution_clock::now();
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 		}
 		
 		// Draw
-		tex.update(pixels.data());
+		tex.update(reinterpret_cast<const std::uint8_t*>(img.get_data().data()));
 		glm::vec2 preview_scale = glm::vec2{window_size} / glm::vec2{render_size};
 		spr.setScale(preview_scale.x, preview_scale.y);
 		window.draw(spr);

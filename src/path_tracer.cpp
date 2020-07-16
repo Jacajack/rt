@@ -4,15 +4,13 @@
 
 using rt::path_tracer;
 
-path_tracer::path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, int width, int height, unsigned long seed) :
+path_tracer::path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, rt::sampled_hdr_image &img, unsigned long seed) :
 	m_camera(&cam),
 	m_scene(&sc),
 	m_accelerator(&accel),
 	m_rng(seed),
 	m_dist(0.f, 1.f),
-	m_pixels(width * height, glm::vec3{0.f}),
-	m_resolution(width, height),
-	m_sample_count(0)
+	m_image(&img)
 {
 }
 
@@ -64,26 +62,27 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, f
 /**
 	Performs one pass of sampling.
 */
-void path_tracer::sample_image()
+void path_tracer::sample_image(int max_depth, float p_extinct, const std::atomic<bool> *active_flag)
 {
+	auto res = m_image->get_dimensions();
 	auto t_start = std::chrono::high_resolution_clock::now();
 
-	for (int y = 0; y < m_resolution.y; y++)
+	for (int y = 0; y < res.y && (!active_flag || *active_flag); y++)
 	{
-		for (int x = 0; x < m_resolution.x; x++)
+		for (int x = 0; x < res.x && (!active_flag || *active_flag); x++)
 		{
 			// Normalized pixel coordinates + random anti-aliasing offset
 			glm::vec2 pixel_pos{
-				(x + this->get_rand()) / m_resolution.x * 2.f - 1.f,
-				1.f - (y + this->get_rand()) / m_resolution.y * 2.f
+				(x + this->get_rand()) / res.x * 2.f - 1.f,
+				1.f - (y + this->get_rand()) / res.y * 2.f
 			};
 
 			// Write pixel
-			m_pixels[y * m_resolution.x + x] += sample_pixel(pixel_pos);
+			m_image->pixel(x, y) += sample_pixel(pixel_pos, max_depth, p_extinct);
 		}
 	}
 
-	m_sample_count++;
+	m_image->add_sample();
 
 	// Measure time
 	auto t_end = std::chrono::high_resolution_clock::now();
@@ -92,13 +91,12 @@ void path_tracer::sample_image()
 
 void path_tracer::clear_image()
 {
-	std::fill(m_pixels.begin(), m_pixels.end(), glm::vec3{0.f});
-	m_sample_count = 0;
+	m_image->clear();
 }
 
 std::ostream &operator<<(std::ostream &s, const path_tracer &pt)
 {
-	s << "rt::path_tracer - " << pt.get_sample_count() << " samples - " 
+	s << "rt::path_tracer - " << pt.get_image().get_sample_count() << " samples - " 
 		<< pt.get_last_sample_time().count() << "s per sample";
 	return s;
 }

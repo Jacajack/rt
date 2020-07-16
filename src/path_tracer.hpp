@@ -4,9 +4,12 @@
 #include <random>
 #include <chrono>
 #include <iosfwd>
+#include <atomic>
+
 #include "scene.hpp"
 #include "camera.hpp"
 #include "ray_accelerator.hpp"
+#include "containers/image.hpp"
 #include "utility.hpp"
 
 namespace rt {
@@ -21,27 +24,21 @@ class path_tracer
 	friend std::ostream &operator<<(std::ostream &, const path_tracer &);
 
 public:
-	path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, int width, int height, unsigned long seed);
+	path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, rt::sampled_hdr_image &img, unsigned long seed);
 
 	//! Samples one pixel
 	glm::vec3 sample_pixel(const glm::vec2 &pixel_pos, int max_depth = 40, float p_extinct = 0.0f) const;
 	
-	//! Samples each pixel in the stored image
-	void sample_image();
+	//! Samples each pixel in the image
+	void sample_image(int max_depth = 40, float p_extinct = 0.0f, const std::atomic<bool> *stop_flag = nullptr);
 
-	//! Clears the stored image
+	//! Clears the image and resets sample number
 	void clear_image();
 
-	//! Provides access to the stored image
-	const std::vector<glm::vec3> &get_image() const
+	//! Provides access to the image
+	const rt::sampled_hdr_image &get_image() const
 	{
-		return m_pixels;
-	}
-
-	//! Returns sample count
-	int get_sample_count() const
-	{
-		return m_sample_count;
+		return *m_image;
 	}
 
 	//! Provides access to private random float generator
@@ -72,10 +69,7 @@ private:
 	std::chrono::duration<double> m_t_last;
 
 	//! Image data
-	//! \todo maybe move this out?
-	std::vector<glm::vec3> m_pixels;
-	glm::ivec2 m_resolution;
-	int m_sample_count;
+	sampled_hdr_image *m_image;
 } __attribute__((aligned(RT_CACHE_LINE_SIZE)));
 
 
