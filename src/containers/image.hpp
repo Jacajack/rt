@@ -8,13 +8,90 @@
 
 namespace rt {
 
+// A forward declaration
+template <typename T> class sampled_image;
+
+/**
+	High dynamic range pixel
+*/
+using hdr_pixel = glm::vec3;
+
+/**
+	8-bit RGB pixel
+*/
+struct rgb_pixel
+{
+	/**
+		Default tonemapping - Reinhard + Gamma correction
+	*/
+	rgb_pixel(hdr_pixel p)
+	{
+		p = p / (p + 1.f);
+		p = glm::pow(p, glm::vec3{1.f / 2.2f});
+		r = p.r * 255.99f;
+		g = p.g * 255.99f;
+		b = p.b * 255.99f;
+	}
+
+	std::uint8_t r, g, b;
+};
+
+/**
+	8-bit RGBA pixel
+*/
+struct rgba_pixel
+{
+	/**
+		Default tonemapping - Reinhard + Gamma correction
+	*/
+	rgba_pixel(hdr_pixel p)
+	{
+		p = p / (p + 1.f);
+		p = glm::pow(p, glm::vec3{1.f / 2.2f});
+		r = p.r * 255.99f;
+		g = p.g * 255.99f;
+		b = p.b * 255.99f;
+		a = 255;
+	}
+
+	rgba_pixel(const rgb_pixel &p) :
+		r(p.r),
+		g(p.g),
+		b(p.b),
+		a(255)
+	{}
+
+	std::uint8_t r, g, b, a;
+};
+
+
 /**
 	2D image built of pixels of type T
 */
 template <typename T>
 class image
 {
+	template <typename> friend class image;
+
 public:
+	image(const image<T> &) = default;
+	image<T> &operator=(const image<T> &) = default;
+
+	image(image<T> &&) = default;
+	image<T> &operator=(image<T> &&) = default;
+
+	/**
+		Image from sampled image
+	*/
+	template <typename U>
+	image(const sampled_image<U> &src);
+
+	/**
+		Image from sampled image assignment
+	*/
+	template <typename U>
+	image<T> &operator=(const sampled_image<U> &src);
+
 	/**
 		"Tonemapping" constructor
 	*/
@@ -45,13 +122,36 @@ public:
 	}
 
 	/**
+		Type-converting assignment operator (if T is constructible from U)
+	*/
+	template <typename U>
+	image<T> &operator=(const image<U> &src)
+	{
+		m_width = src.m_width;
+		m_height = src.m_height;
+		m_data.reserve(m_width * m_height);
+		for (const auto &p : src.m_data)
+			m_data.emplace_back(p);
+
+		return *this;
+	}
+
+	/**
 		Constructs empty image
 	*/
 	image(int w, int h) :
 		m_width(w),
-		m_height(h)	
+		m_height(h),
+		m_data(w * h)
 	{
-		m_data.reserve(w * h);
+	}
+
+	/**
+		Clears image
+	*/
+	void clear()
+	{
+		std::fill(m_data.begin(), m_data.end(), T{});
 	}
 
 	/**
@@ -166,8 +266,30 @@ public:
 		if (get_dimensions() != rhs.get_dimensions())
 			throw std::runtime_error("Cannot add rt::images with different dimensions");
 	
-		for (int i = 0; i < size(); i++)
-			m_data[i] = rhs.m_data[i];
+		for (unsigned int i = 0; i < size(); i++)
+			m_data[i] += rhs.m_data[i];
+
+		return *this;
+	}
+
+	typename std::vector<T>::iterator begin()
+	{
+		return m_data.begin();
+	}
+
+	typename std::vector<T>::iterator end()
+	{
+		return m_data.end();
+	}
+
+	typename std::vector<T>::const_iterator cbegin() const
+	{
+		return m_data.cbegin();
+	}
+
+	typename std::vector<T>::const_iterator cend() const
+	{
+		return m_data.cend();
 	}
 
 private:
@@ -177,107 +299,106 @@ private:
 };
 
 /**
-	Adds two images of different types
+	Adds two images
 */
 template <typename T, typename U>
 image<T> operator+(const image<T> &lhs, const image<U> &rhs)
 {
-	if (lhs.get_dimensions() != rhs.get_dimensions())
-		throw std::runtime_error("Cannot add rt::images with different dimensions");
-	
-	// LHS copy
+	// LHS copy and convert U image to T image
 	image<T> res(lhs);
-	
-	// Convert U image to T image
 	image<T> rhs_t(rhs);
-
-	for (int i = 0; i < res.size(); i++)
-		res[i] = rhs_t[i];
-
+	res += rhs_t;
 	return res;
 }
 
 /**
-	Adds two images of the same type
+	Like `image` but also stores number of samples (per entire image)
 */
 template <typename T>
-image<T> operator+(const image<T> &lhs, const image<T> &rhs)
+class sampled_image : public image<T>
 {
-	if (lhs.get_dimensions() != rhs.get_dimensions())
-		throw std::runtime_error("Cannot add rt::images with different dimensions");
-	
-	// LHS copy
-	image<T> res(lhs);
+	template <typename> friend class sampled_image;
 
-	for (int i = 0; i < res.size(); i++)
-		res[i] = rhs[i];
+public:
+	using image<T>::image;
 
-	return res;
+	void add_sample()
+	{
+		m_sample_count++;
+	}
+
+	void set_sample_count(int n)
+	{
+		m_sample_count = n;
+	}
+
+	int get_sample_count() const
+	{
+		return m_sample_count;
+	}
+
+	void clear()
+	{
+		m_sample_count = 0;
+		image<T>::clear();
+	}
+
+	/**
+		Adds another image to this one
+	*/
+	sampled_image<T> &operator+=(const sampled_image<T> &rhs)
+	{
+		image<T>::operator+=(rhs);
+		m_sample_count += rhs.get_sample_count();
+		return *this;
+	}
+
+private:
+	int m_sample_count = 0;
+};
+
+/**
+	Sampled images are converted to normal images by simply
+	dividing each pixel by the number of samples
+*/
+template <typename T>
+template <typename U>
+image<T>::image(const sampled_image<U> &src)
+{
+	image<U> tmp(static_cast<const image<U>&>(src));
+	for (auto &p : tmp)
+		p /= src.get_sample_count();
+	image<T>::operator=(std::move(tmp));
 }
 
-/**
-	Pixel of a non-uniformly sampled image. HDR data + numer of samples
-*/
-struct sampled_pixel
+template <typename T>
+template <typename U>
+image<T> &image<T>::operator=(const sampled_image<U> &src)
 {
-	glm::vec3 data;
-	int sample_count;
-};
+	m_width = src.m_width;
+	m_height = src.m_height;
 
-/**
-	8-bit RGB pixel
-*/
-struct rgb_pixel
+	image<U> tmp(static_cast<const image<U>&>(src));
+	for (auto &p : tmp)
+		p /= src.get_sample_count();
+	image<T>::operator=(std::move(tmp));
+}
+
+template <typename T, typename U>
+sampled_image<T> operator+(const sampled_image<T> &lhs, const sampled_image<U> &rhs)
 {
-	/**
-		Default tonemapping - Reinhard + Gamma correction
-	*/
-	rgb_pixel(const sampled_pixel &p)
-	{
-		auto pix = p.data / static_cast<float>(p.sample_count);
-		pix = pix / (pix + 1.f);
-		pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
-		r = pix.r * 255.99f;
-		g = pix.g * 255.99f;
-		b = pix.b * 255.99f;
-	}
-
-	std::uint8_t r, g, b;
-};
-
-/**
-	8-bit RGBA pixel
-*/
-struct rgba_pixel
-{
-	/**
-		Default tonemapping - Reinhard + Gamma correction
-	*/
-	rgba_pixel(const sampled_pixel &p)
-	{
-		auto pix = p.data / static_cast<float>(p.sample_count);
-		pix = pix / (pix + 1.f);
-		pix = glm::pow(pix, glm::vec3{1.f / 2.2f});
-		r = pix.r * 255.99f;
-		g = pix.g * 255.99f;
-		b = pix.b * 255.99f;
-		a = 255;
-	}
-
-	rgba_pixel(const rgb_pixel &p) :
-		r(p.r),
-		g(p.g),
-		b(p.b),
-		a(255)
-	{}
-
-	std::uint8_t r, g, b, a;
-};
-
+	// LHS copy
+	sampled_image<T> res(lhs);
+	res += rhs;
+	return res;
+}
 
 using rgb_image = image<rgb_pixel>;
 using rgba_image = image<rgba_pixel>;
 using hdr_image = image<glm::vec3>;
-using sampled_image = image<sampled_pixel>;
+
+using sampled_rgb_image = sampled_image<rgb_pixel>;
+using sampled_rgba_image = sampled_image<rgba_pixel>;
+using sampled_hdr_image = sampled_image<glm::vec3>;
 
 }
