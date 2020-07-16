@@ -22,8 +22,6 @@ class renderer
 public:
 	renderer(
 		const scene &sc,
-		const camera &cam,
-		const ray_accelerator &accel,
 		int width,
 		int height,
 		unsigned long seed,
@@ -66,8 +64,6 @@ public:
 
 private:
 	const scene *m_scene;
-	const camera *m_camera;
-	const ray_accelerator *m_accelerator;
 
 	//! Active flag
 	std::unique_ptr<std::atomic<bool>> m_active_flag;

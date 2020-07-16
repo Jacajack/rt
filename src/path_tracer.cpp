@@ -4,10 +4,10 @@
 
 using rt::path_tracer;
 
-path_tracer::path_tracer(const rt::camera &cam, const rt::scene &sc, const rt::ray_accelerator &accel, rt::sampled_hdr_image &img, unsigned long seed) :
-	m_camera(&cam),
+path_tracer::path_tracer(const rt::scene &sc, rt::sampled_hdr_image &img, unsigned long seed) :
+	m_camera(&sc.get_camera()),
 	m_scene(&sc),
-	m_accelerator(&accel),
+	m_accelerator(&sc.get_accelerator()),
 	m_rng(seed),
 	m_dist(0.f, 1.f),
 	m_image(&img)

@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include "ray.hpp"
+#include "camera.hpp"
 #include "material.hpp"
 #include "ray_accelerator.hpp"
 #include "primitive_collection.hpp"
@@ -92,9 +93,33 @@ public:
 	
 	ray_hit cast_ray(const ray &r, const ray_accelerator &accel) const;
 
+	void set_camera(const rt::camera &c)
+	{
+		m_camera = &c;
+	}
+
+	const rt::camera &get_camera() const
+	{
+		return *m_camera;
+	}
+
+	template <typename T>
+	void init_accelerator()
+	{
+		m_accelerator_ptr = std::make_unique<T>(*this);
+	}
+
+	const rt::ray_accelerator &get_accelerator() const
+	{
+		return *m_accelerator_ptr;
+	}
+
 private:
 	std::vector<scene_object*> m_objects;
 	std::unique_ptr<abstract_material> m_world_material = std::make_unique<simple_sky_material>();
+
+	const rt::camera *m_camera = nullptr;
+	std::unique_ptr<rt::ray_accelerator> m_accelerator_ptr;
 };
 
 }

@@ -6,15 +6,11 @@ using rt::renderer;
 
 renderer::renderer(
 		const scene &sc,
-		const camera &cam,
-		const ray_accelerator &accel,
 		int width,
 		int	height,
 		unsigned long seed,
 		int num_threads) :
 	m_scene(&sc),
-	m_camera(&cam),
-	m_accelerator(&accel),
 	m_active_flag(std::make_unique<std::atomic<bool>>(false)),
 	m_thread_count(num_threads),
 	m_image(width, height)
@@ -35,9 +31,7 @@ renderer::renderer(
 	for (int i = 0; i < m_thread_count; i++)
 	{
 		m_tracers.emplace_back(
-			*m_camera,
 			*m_scene,
-			*m_accelerator,
 			m_images[i],
 			init_rnd());
 	}
