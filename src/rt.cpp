@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	// scene.add_object(&wall_r_obj);
 
 	// Test mesh
-	rt::mesh_data monkey("monkey.obj");
+	rt::mesh_data monkey("resources/monkey.obj");
 	rt::primitive_collection monkey_pc{monkey};
 	rt::scene_object monkey_obj{monkey_pc, red_mat};
 	// monkey_obj.set_transform(glm::gtx::translate(0, 1, 0));
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	// rt::scene_object monkey_obj{rt::primitive_collection{monkey}, red_mat};
 	scene.add_object(&monkey_obj);
 
-	rt::mesh_data bunny("bunny.obj");
+	rt::mesh_data bunny("resources/bunny.obj");
 	rt::primitive_collection bunny_pc{bunny};
 	rt::scene_object bunny_obj{bunny_pc, glass_mat};
 	bunny_obj.set_transform(glm::translate(glm::vec3(0.f, 0.f, 2.f)) * glm::scale(glm::vec3(2.f)));

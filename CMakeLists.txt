@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.3)
 project(rt)
 
-# Source directory
-set(PROJECT_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
-
 # General compilation flags
 set(CXX_FLAGS_LIST
 	"-Wall"
@@ -54,14 +51,17 @@ link_libraries(
 
 add_executable(
 	rt
-	"${PROJECT_SOURCE_DIR}/rt.cpp"
-	"${PROJECT_SOURCE_DIR}/ray.cpp"
-	"${PROJECT_SOURCE_DIR}/camera.cpp"
-	"${PROJECT_SOURCE_DIR}/scene.cpp"
-	"${PROJECT_SOURCE_DIR}/renderer.cpp"
-	"${PROJECT_SOURCE_DIR}/path_tracer.cpp"
-	"${PROJECT_SOURCE_DIR}/primitive_collection.cpp"
-	"${PROJECT_SOURCE_DIR}/mesh_data.cpp"
-	"${PROJECT_SOURCE_DIR}/bvh_tree.cpp"
-	"${PROJECT_SOURCE_DIR}/materials/pbr_material.cpp"
+	"${PROJECT_SOURCE_DIR}/src/rt.cpp"
+	"${PROJECT_SOURCE_DIR}/src/ray.cpp"
+	"${PROJECT_SOURCE_DIR}/src/camera.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer.cpp"
+	"${PROJECT_SOURCE_DIR}/src/path_tracer.cpp"
+	"${PROJECT_SOURCE_DIR}/src/primitive_collection.cpp"
+	"${PROJECT_SOURCE_DIR}/src/mesh_data.cpp"
+	"${PROJECT_SOURCE_DIR}/src/bvh_tree.cpp"
+	"${PROJECT_SOURCE_DIR}/src/materials/pbr_material.cpp"
 )
+
+# Copy resources
+file(COPY "${PROJECT_SOURCE_DIR}/resources" DESTINATION "${PROJECT_BINARY_DIR}")
