@@ -93,6 +93,7 @@ void path_tracer::sample_image()
 void path_tracer::clear_image()
 {
 	std::fill(m_pixels.begin(), m_pixels.end(), glm::vec3{0.f});
+	m_sample_count = 0;
 }
 
 std::ostream &operator<<(std::ostream &s, const path_tracer &pt)
