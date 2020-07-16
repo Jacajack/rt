@@ -160,8 +160,11 @@ int main(int argc, char **argv)
 	int samples = 0, last_samples = 0;
 
 	// Changes with mouse drags
-	glm::vec2 drag_pos{0.f}, drag_start{0.f};
+	glm::vec2 drag_pos{rt::pi<> * 0.5f, 0.f}, drag_start{0.f};
+	float drag_speed = 2.f;
 	bool drag_pending = false;
+
+	glm::vec3 camera_dir = {0, 0, -1};
 
 	// Main loop
 	while (window.isOpen())
@@ -191,9 +194,19 @@ int main(int argc, char **argv)
 					auto current = window.mapPixelToCoords(sf::Vector2i(ev.mouseMove.x, ev.mouseMove.y));
 					glm::vec2 pos = glm::vec2{current.x, -current.y} / glm::vec2{window_size};
 					auto delta = pos - drag_start;
-					drag_pos += delta;
+					drag_pos += delta * drag_speed;
 					drag_start = pos;
 					std::cout << drag_pos.x << " " << drag_pos.y << std::endl;
+					
+					drag_pos.y = glm::clamp(drag_pos.y, -rt::pi<> * 0.49f, rt::pi<> * 0.49f);
+
+					float theta = -drag_pos.y;
+					float phi = -drag_pos.x;
+					camera_dir.x = std::cos(phi) * std::cos(theta);
+					camera_dir.y = std::sin(theta);
+					camera_dir.z = std::sin(phi) * std::cos(theta);
+					cam.set_direction(camera_dir);
+					ren.clear();
 					break;
 				}
 
