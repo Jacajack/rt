@@ -164,11 +164,16 @@ int main(int argc, char **argv)
 	float drag_speed = 2.f;
 	bool drag_pending = false;
 
-	glm::vec3 camera_dir = {0, 0, -1};
+	float camera_speed = 2.5f;
+	glm::vec3 camera_dir{0, 0, -1};
+	glm::vec3 camera_velocity{0.f};
 
 	// Main loop
+	sf::Clock dt_clock;
 	while (window.isOpen())
 	{
+		float dt = dt_clock.restart().asSeconds();
+
 		// Process events
 		for (sf::Event ev{}; window.pollEvent(ev);)
 		{
@@ -210,6 +215,24 @@ int main(int argc, char **argv)
 					break;
 				}
 
+				case sf::Event::KeyPressed:
+				{
+					if (ev.key.code == sf::Keyboard::W) camera_velocity.z = camera_speed;
+					if (ev.key.code == sf::Keyboard::S) camera_velocity.z = -camera_speed;
+					if (ev.key.code == sf::Keyboard::A) camera_velocity.x = -camera_speed;
+					if (ev.key.code == sf::Keyboard::D) camera_velocity.x = camera_speed;
+					break;
+				}
+
+				case sf::Event::KeyReleased:
+				{
+					if (ev.key.code == sf::Keyboard::W) camera_velocity.z = 0.f;
+					if (ev.key.code == sf::Keyboard::S) camera_velocity.z = 0.f;
+					if (ev.key.code == sf::Keyboard::A) camera_velocity.x = 0.f;
+					if (ev.key.code == sf::Keyboard::D) camera_velocity.x = 0.f;
+					break;
+				}
+
 				case sf::Event::Closed:
 					window.close();
 					break;
@@ -218,6 +241,10 @@ int main(int argc, char **argv)
 					break;
 			}			
 		}
+
+		// Move the camera
+		if (glm::length(camera_velocity) > 0.0001f) ren.clear();
+		cam.set_position(cam.get_position() + cam.get_matrix() * camera_velocity * dt);
 
 		// Compute temp result
 		ren.compute_result();
