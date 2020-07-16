@@ -38,9 +38,8 @@ int main(int argc, char **argv)
 
 	// The image data
 	glm::ivec2 render_size{1024, 1024};
-	std::vector<uint8_t> pixels(render_size.x * render_size.y * 4);
 
-	// The scene and camera
+	// The scene
 	rt::scene scene;
 
 	// Test material
@@ -52,11 +51,6 @@ int main(int argc, char **argv)
 	rt::pbr_material glow_mat{{0.0f, 0.0f, 0.0f}, 1.0f, 0.0f, glm::vec3{25.f}};
 	rt::pbr_material mirror_mat{{0.8f, 0.8f, 0.8f}, 0.05f, 1.0f};
 	rt::simple_glass_material glass_mat{glm::vec3{0.8f, 0.042f, 0.161f}, 1.50f};
-
-	// Red sphere
-	rt::primitive_collection s{rt::sphere{{0, 2, 0}, 2}};
-	rt::scene_object sphere_obj{s, red_mat};
-	// scene.add_object(&sphere_obj);
 
 	// Green sphere
 	rt::primitive_collection s2{rt::sphere{{3, 1, 1}, 1}};
@@ -78,7 +72,7 @@ int main(int argc, char **argv)
 	rt::scene_object sphere4_obj{s4, mirror_mat};
 	scene.add_object(&sphere4_obj);
 	
-	// Golden sphere
+	// Better red sphere
 	rt::primitive_collection s5{rt::sphere{{5, 3, -4}, 3}};
 	rt::scene_object sphere5_obj{s5, better_red_mat};
 	scene.add_object(&sphere5_obj);
@@ -107,10 +101,7 @@ int main(int argc, char **argv)
 	rt::mesh_data monkey("resources/monkey.obj");
 	rt::primitive_collection monkey_pc{monkey};
 	rt::scene_object monkey_obj{monkey_pc, red_mat};
-	// monkey_obj.set_transform(glm::gtx::translate(0, 1, 0));
 	monkey_obj.set_transform(glm::translate(glm::vec3(1.f, 1.f, 0.f)));
-	// std::cout << monkey_pc.triangles.size() << std::endl;
-	// rt::scene_object monkey_obj{rt::primitive_collection{monkey}, red_mat};
 	scene.add_object(&monkey_obj);
 
 	rt::mesh_data bunny("resources/bunny.obj");
@@ -119,26 +110,27 @@ int main(int argc, char **argv)
 	bunny_obj.set_transform(glm::translate(glm::vec3(0.f, 0.f, 2.f)) * glm::scale(glm::vec3(2.f)));
 	scene.add_object(&bunny_obj);
 
-	// BVH accelerator
-	std::cerr << "building BVH..." << std::endl;
-	auto t_bvh_start = std::chrono::high_resolution_clock::now();
-	rt::bvh_tree bvh{scene};
-	auto t_bvh_end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> t_bvh = t_bvh_end - t_bvh_start;
-	std::cerr << "done - took " << t_bvh.count() << "s" << std::endl;
 
 
-	// Camera setup
-	rt::camera cam({0, 2, 6}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
-	cam.look_at({0, 0.5, 0});
-	scene.set_camera(cam);
+	// ----------------------------------------------------------------------------
+
+
 
 	// Main random device
 	std::random_device rnd;
 
-	
-	// ----------------------------------------------------------------------------
-	
+	// Initial camera setup
+	rt::camera cam({0, 2, 6}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
+	cam.look_at({0, 0.5, 0});
+	scene.set_camera(cam);
+
+	// Build BVH
+	std::cerr << "building BVH..." << std::endl;
+	auto t_bvh_start = std::chrono::high_resolution_clock::now();
+	scene.init_accelerator<rt::bvh_tree>();
+	auto t_bvh_end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> t_bvh = t_bvh_end - t_bvh_start;
+	std::cerr << "done - took " << t_bvh.count() << "s" << std::endl;
 
 	// Open a SFML window
 	sf::RenderWindow window(sf::VideoMode(window_size.x, window_size.y), "rt");
@@ -154,7 +146,7 @@ int main(int argc, char **argv)
 
 	// The renderer
 	const int render_threads = 6;
-	rt::renderer ren(scene, cam, bvh, render_size.x, render_size.y, rnd(), render_threads);
+	rt::renderer ren(scene, render_size.x, render_size.y, rnd(), render_threads);
 	ren.start();
 
 	// Start time and sample count
