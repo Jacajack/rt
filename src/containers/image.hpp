@@ -34,7 +34,7 @@ struct rgb_pixel
 	}
 
 	std::uint8_t r, g, b;
-};
+} __attribute__((packed));
 
 /**
 	8-bit RGBA pixel
@@ -62,7 +62,7 @@ struct rgba_pixel
 	{}
 
 	std::uint8_t r, g, b, a;
-};
+} __attribute__((packed));
 
 
 /**
@@ -375,9 +375,6 @@ template <typename T>
 template <typename U>
 image<T> &image<T>::operator=(const sampled_image<U> &src)
 {
-	m_width = src.m_width;
-	m_height = src.m_height;
-
 	image<U> tmp(static_cast<const image<U>&>(src));
 	for (auto &p : tmp)
 		p /= src.get_sample_count();
