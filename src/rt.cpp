@@ -8,6 +8,8 @@
 #include <chrono>
 #include <algorithm>
 #include <future>
+#include <string>
+
 #include <SFML/Graphics.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -221,6 +223,14 @@ int main(int argc, char **argv)
 					if (ev.key.code == sf::Keyboard::S) camera_velocity.z = -camera_speed;
 					if (ev.key.code == sf::Keyboard::A) camera_velocity.x = -camera_speed;
 					if (ev.key.code == sf::Keyboard::D) camera_velocity.x = camera_speed;
+					if (ev.key.code == sf::Keyboard::C)
+					{
+						std::stringstream ss;
+						ss << std::time(nullptr);
+						ss << "-" << ren.get_sample_count() << "S";
+						ss << ".png"; 
+						spr.getTexture()->copyToImage().saveToFile(ss.str());
+					}
 					break;
 				}
 
