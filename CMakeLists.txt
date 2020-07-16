@@ -26,7 +26,7 @@ string(REPLACE ";" " " CXX_FLAGS_DEBUG_STR "${CXX_FLAGS_DEBUG_LIST}")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS_DEBUG_STR}")
 
 # Release compilation flags
-set( CXX_FLAGS_RELEASE_LIST
+set(CXX_FLAGS_RELEASE_LIST
 	# "-g"
 	# "-pg"
 	# "-s"
@@ -42,13 +42,6 @@ set( CXX_FLAGS_RELEASE_LIST
 string(REPLACE ";" " " CXX_FLAGS_RELEASE_STR "${CXX_FLAGS_RELEASE_LIST}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_RELEASE_STR}")
 
-link_libraries(
-	"sfml-system"
-	"sfml-window"
-	"sfml-graphics"
-	"assimp"
-)
-
 add_executable(
 	rt
 	"${PROJECT_SOURCE_DIR}/src/rt.cpp"
@@ -62,6 +55,32 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/src/bvh_tree.cpp"
 	"${PROJECT_SOURCE_DIR}/src/materials/pbr_material.cpp"
 )
+
+# Look for Assimp
+find_package(ASSIMP REQUIRED)
+if (ASSIMP_FOUND)
+	include_directories(${ASSIMP_INCLUDE_DIRS})
+	target_link_libraries(rt ${ASSIMP_LIBRARIES})
+else()
+	message(FATAL_ERROR "Please install Assimp!")
+endif()
+
+# Look for SFML
+find_package(SFML 2 COMPONENTS system window graphics REQUIRED)
+if (SFML_FOUND)
+	include_directories(${SFML_INCLUDE_DIRS})
+	target_link_libraries(rt "sfml-system" "sfml-window" "sfml-graphics")
+else()
+	message(FATAL_ERROR "Please install SFML 2.x!")
+endif()
+
+# Look for GLM
+find_package(glm REQUIRED)
+if (glm_FOUND)
+	include_directories(${glm_INCLUDE_DIRS})
+else()
+	message(FATAL_ERROR "Please install GLM!")
+endif()
 
 # Copy resources
 file(COPY "${PROJECT_SOURCE_DIR}/resources" DESTINATION "${PROJECT_BINARY_DIR}")
