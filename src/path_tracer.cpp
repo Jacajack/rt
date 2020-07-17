@@ -29,7 +29,7 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, f
 	float ior = 1.f;
 	int depth = 0;
 
-	while (depth < max_depth)
+	while (depth < max_depth && weight != glm::vec3{0.f})
 	{
 		// Russian roulette for path termination
 		if (get_rand() < p_extinct)
