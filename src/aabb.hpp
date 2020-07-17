@@ -190,6 +190,9 @@ public:
 		m_z.insert(box.get_max().z);
 	}
 
+	/**
+		\todo Fix this
+	*/
 	void pop(const aabb &box)
 	{
 		if (m_x.empty() || m_y.empty() || m_z.empty())
@@ -198,17 +201,21 @@ public:
 		auto min_x_it = m_x.find(box.get_min().x);
 		auto min_y_it = m_y.find(box.get_min().y);
 		auto min_z_it = m_z.find(box.get_min().z);
+
+		if (min_x_it == m_x.end() || min_y_it == m_y.end() || min_z_it == m_z.end())
+			throw std::out_of_range("popped invalid value from aabb_collection");
+
+		m_x.erase(min_x_it);
+		m_y.erase(min_y_it);
+		m_z.erase(min_z_it);
+
 		auto max_x_it = m_x.find(box.get_max().x);
 		auto max_y_it = m_y.find(box.get_max().y);
 		auto max_z_it = m_z.find(box.get_max().z);
 
-		if (	min_x_it == m_x.end() || min_y_it == m_y.end() || min_z_it == m_z.end()
-			||	max_x_it == m_x.end() || max_y_it == m_y.end() || max_z_it == m_z.end())
+		if (max_x_it == m_x.end() || max_y_it == m_y.end() || max_z_it == m_z.end())
 			throw std::out_of_range("popped invalid value from aabb_collection");
-		
-		m_x.erase(min_x_it);
-		m_y.erase(min_y_it);
-		m_z.erase(min_z_it);
+
 		m_x.erase(max_x_it);
 		m_y.erase(max_y_it);
 		m_z.erase(max_z_it);
