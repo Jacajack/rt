@@ -14,6 +14,8 @@ namespace rt {
 */
 struct primitive_collection
 {
+	primitive_collection() = default;
+
 	explicit primitive_collection(const mesh_data &mesh);
 	explicit primitive_collection(mesh_data &&mesh);
 	explicit primitive_collection(const triangle &t);

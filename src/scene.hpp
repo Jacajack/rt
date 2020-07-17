@@ -17,9 +17,8 @@ namespace rt {
 class scene_object
 {
 public:
-	scene_object(const primitive_collection &primitives, const abstract_material &mat) :
-		m_material(&mat),
-		m_primitives(&primitives)
+	scene_object(const std::shared_ptr<const primitive_collection> &primitives) :
+		m_primitives(primitives)
 	{}
 
 	const primitive_collection &get_primitives() const
@@ -35,25 +34,8 @@ public:
 		if (!m_primitives) throw std::runtime_error("object has empty primitive collection");
 
 		primitive_collection col{*m_primitives};
-		col.assign_material(m_material);
 		col.apply_transform(m_transform);
 		return col;
-	}
-
-	/**
-		Assigns material to the entire object
-	*/
-	void set_material(const abstract_material *material)
-	{
-		m_material = m_material;
-	}
-
-	/**
-		Returns currently used material
-	*/
-	const abstract_material &get_material() const
-	{
-		return *m_material;
 	}
 
 	/**
@@ -74,8 +56,7 @@ public:
 
 private:
 	glm::mat4 m_transform = glm::mat4(1.f);
-	const abstract_material *m_material;
-	const primitive_collection *m_primitives = nullptr;
+	std::shared_ptr<const primitive_collection> m_primitives;
 };
 
 /**
@@ -84,9 +65,17 @@ private:
 class scene
 {
 public:
-	void add_object(scene_object *obj);
-	
-	const std::vector<scene_object*> &get_objects() const
+	void add_object(const std::shared_ptr<rt::scene_object> &obj)
+	{
+		m_objects.push_back(obj);
+	}
+
+	void add_material(const std::shared_ptr<rt::abstract_material> &mat)
+	{
+		m_materials.push_back(mat);
+	}
+
+	const std::vector<std::shared_ptr<rt::scene_object>> &get_objects() const
 	{
 		return m_objects;
 	}
@@ -109,13 +98,20 @@ public:
 		m_accelerator_ptr = std::make_unique<T>(*this);
 	}
 
+	void set_accelerator(std::unique_ptr<rt::ray_accelerator> ptr)
+	{
+		m_accelerator_ptr = std::move(ptr);
+	}
+
 	const rt::ray_accelerator &get_accelerator() const
 	{
 		return *m_accelerator_ptr;
 	}
 
 private:
-	std::vector<scene_object*> m_objects;
+	std::vector<std::shared_ptr<rt::scene_object>> m_objects;
+	std::vector<std::shared_ptr<rt::abstract_material>> m_materials;
+
 	std::unique_ptr<abstract_material> m_world_material = std::make_unique<simple_sky_material>();
 
 	const rt::camera *m_camera = nullptr;

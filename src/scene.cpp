@@ -2,12 +2,6 @@
 
 using rt::scene;
 
-void scene::add_object(scene_object *obj)
-{
-	m_objects.push_back(obj);
-}
-
-
 rt::ray_hit scene::cast_ray(const rt::ray &r, const rt::ray_accelerator &accel) const
 {
 	// Nearest intersection
