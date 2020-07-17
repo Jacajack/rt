@@ -64,7 +64,7 @@ public:
 		return center;
 	}
 
-	const float get_surface_area() const
+	float get_surface_area() const
 	{
 		return 2.f * (size.x * size.y + size.x * size.z + size.z * size.y);
 	}
