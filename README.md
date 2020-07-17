@@ -4,6 +4,10 @@ Another exercise in programming...
 
 <hr>
 
+2020-07-18 - Scene import from Blender using custom JSD file. Some artifacts are visible here - that's the reason why PBR material BSDF needs to be reworked:<br>
+<img src=1595029745-893S.png /><br>
+~893 samples, 0.5259 per sample (3.15s)
+
 2020-07-13 - Russian roulette for ray extinction, multithreading and other cool stuff:<br>
 <img src=screens/2020-07-13-1.png /><br>
 ~1006 samples, 0.2299s per sample (1.37s per thread / 6), 0.05 ray extinction probability
