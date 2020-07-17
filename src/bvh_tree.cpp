@@ -34,6 +34,23 @@ bvh_tree::bvh_tree(const rt::scene &scene) :
 		std::copy(col.planes.begin(), col.planes.end(), std::back_inserter(m_planes));
 	}
 
+	// Verify primitives' materials
+	bool bad_mat = false;
+	for (auto &p : m_triangles)
+		if (p.material == nullptr)
+			bad_mat = true;
+
+	for (auto &p : m_spheres)
+		if (p.material == nullptr)
+			bad_mat = true;
+
+	for (auto &p : m_planes)
+		if (p.material == nullptr)
+			bad_mat = true;
+
+	if (bad_mat)
+		throw std::runtime_error("Some primitives don't have any material assigned. Cannot proceed!");
+
 	if (m_triangles.size())
 	{
 		m_tree.get_root_node().emplace(m_triangles.data(), m_triangles.data() + m_triangles.size());
