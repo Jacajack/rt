@@ -8,11 +8,18 @@
 
 #include <nlohmann/json.hpp>
 
+#include "camera.hpp"
 #include "scene.hpp"
 #include "materials/pbr_material.hpp"
 #include "materials/glass.hpp"
 
 using namespace nlohmann;
+
+static void read_json_vector(glm::vec3 &v, const json &j)
+{
+	for (int i = 0; i < v.length(); i++)
+		v[i] = j[i].get<float>();
+}
 
 /**
 	Creates material based on data from the JSON file
@@ -21,15 +28,9 @@ using namespace nlohmann;
 */
 static std::shared_ptr<rt::abstract_material> make_material(const json &m)
 {
-	glm::vec3 base_color;
-	base_color.r = m["base_color"][0].get<float>();
-	base_color.g = m["base_color"][1].get<float>();
-	base_color.b = m["base_color"][2].get<float>();
-
-	glm::vec3 emission;
-	emission.r = m["emission"][0].get<float>();
-	emission.g = m["emission"][1].get<float>();
-	emission.b = m["emission"][2].get<float>();
+	glm::vec3 base_color, emission;
+	read_json_vector(base_color, m["base_color"]);
+	read_json_vector(emission, m["emission"]);
 
 	float metallic = m["metallic"].get<float>();
 	float roughness = 0.05f + m["roughness"].get<float>();
@@ -40,6 +41,25 @@ static std::shared_ptr<rt::abstract_material> make_material(const json &m)
 		return std::make_shared<rt::simple_glass_material>(base_color, ior);
 	else
 		return std::make_shared<rt::pbr_material>(base_color, roughness, metallic, emission);
+}
+
+/**
+	Creates camera from camera stored in 
+*/
+static rt::camera make_camera(const json &j)
+{
+	if (j["type"].get<std::string>() != "camera")
+		throw std::runtime_error("non-camera object passed to make_camera in JSD parser");
+
+	float fov = j["fov"][0].get<float>();
+	float near = j["near_plane"].get<float>();
+
+	glm::vec3 pos, up, forward;
+	read_json_vector(pos, j["position"]);
+	read_json_vector(up, j["up"]);
+	read_json_vector(forward, j["forward"]);
+
+	return rt::camera{pos, forward, up, near, fov, 1.f};
 }
 
 rt::scene rt::load_jsd_scene(const std::string &path)
@@ -81,13 +101,9 @@ rt::scene rt::load_jsd_scene(const std::string &path)
 		for (auto &v : obj["vertices"])
 		{
 			glm::vec3 u;
-			u.x = v["p"][0].get<float>(); 
-			u.y = v["p"][1].get<float>(); 
-			u.z = v["p"][2].get<float>(); 
+			read_json_vector(u, v["p"]);
 			positions.push_back(u);
-			u.x = v["n"][0].get<float>(); 
-			u.y = v["n"][1].get<float>(); 
-			u.z = v["n"][2].get<float>(); 
+			read_json_vector(u, v["n"]);
 			normals.push_back(u);
 		}
 		
@@ -115,9 +131,7 @@ rt::scene rt::load_jsd_scene(const std::string &path)
 			else
 			{
 				glm::vec3 N;
-				N.x = f["n"][0].get<float>();
-				N.y = f["n"][1].get<float>();
-				N.z = f["n"][2].get<float>();
+				read_json_vector(N, f["n"]);
 				t.normals[0] = t.normals[1] = t.normals[2] = N;
 			}
 			
@@ -140,6 +154,14 @@ rt::scene rt::load_jsd_scene(const std::string &path)
 		auto col = std::make_shared<rt::primitive_collection>();
 		col->triangles = std::move(triangles);
 		sc.add_object(std::make_shared<rt::scene_object>(col));
+	}
+
+	if (scene_data["cameras"].size() > 0)
+		sc.set_camera(std::make_shared<rt::camera>(make_camera(scene_data["cameras"][0])));
+	else
+	{
+		rt::camera default_cam({12, 1, 0}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
+		sc.set_camera(std::make_shared<rt::camera>(default_cam));
 	}
 
 	// Add materials

@@ -82,9 +82,14 @@ public:
 	
 	ray_hit cast_ray(const ray &r, const ray_accelerator &accel) const;
 
-	void set_camera(const rt::camera &c)
+	void set_camera(const std::shared_ptr<rt::camera> &c)
 	{
-		m_camera = &c;
+		m_camera = c;
+	}
+
+	rt::camera &get_camera()
+	{
+		return *m_camera;
 	}
 
 	const rt::camera &get_camera() const
@@ -114,7 +119,7 @@ private:
 
 	std::unique_ptr<abstract_material> m_world_material = std::make_unique<simple_sky_material>();
 
-	const rt::camera *m_camera = nullptr;
+	std::shared_ptr<rt::camera> m_camera;
 	std::unique_ptr<rt::ray_accelerator> m_accelerator_ptr;
 };
 

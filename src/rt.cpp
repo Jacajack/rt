@@ -53,9 +53,7 @@ int main(int argc, char **argv)
 	std::random_device rnd;
 
 	// Initial camera setup
-	rt::camera cam({12, 1, 0}, {0, 0, 1}, {0, 1, 0}, 0.01, glm::radians(60.f), 1.f);
-	cam.look_at({0, 0.5, 0});
-	scene.set_camera(cam);
+	rt::camera &cam = scene.get_camera();
 
 	// Build BVH
 	std::cerr << "building BVH..." << std::endl;
@@ -137,7 +135,7 @@ int main(int argc, char **argv)
 					camera_dir.x = std::cos(phi) * std::cos(theta);
 					camera_dir.y = std::sin(theta);
 					camera_dir.z = std::sin(phi) * std::cos(theta);
-					cam.set_direction(camera_dir);
+					scene.get_camera().set_direction(camera_dir);
 					ren.clear();
 					break;
 				}
