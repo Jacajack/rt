@@ -25,6 +25,11 @@ public:
 	mesh_data(const std::string &path);
 
 	/**
+		Constructs mesh_data from Assimp mesh
+	*/
+	mesh_data(const aiMesh *mesh);
+
+	/**
 		Provides read-only access to the triangle data
 	*/
 	const std::vector<rt::triangle> &get_triangles() const
@@ -41,7 +46,7 @@ public:
 	} 
 
 private:
-	void append_assimp_mesh(aiMesh *mesh);
+	void append_assimp_mesh(const aiMesh *mesh);
 	void process_assimp_node(const aiScene *scene, aiNode *node);
 
 	std::vector<rt::triangle> m_triangles;

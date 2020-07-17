@@ -21,7 +21,12 @@ rt::mesh_data::mesh_data(const std::string &path)
 	process_assimp_node(scene, scene->mRootNode);
 }
 
-void mesh_data::append_assimp_mesh(aiMesh *mesh)
+mesh_data::mesh_data(const aiMesh *mesh)
+{
+	append_assimp_mesh(mesh);
+}
+
+void mesh_data::append_assimp_mesh(const aiMesh *mesh)
 {
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> normals;
