@@ -15,7 +15,7 @@ set(CXX_FLAGS_DEBUG_LIST
 	"-g"
 	"-DDEBUG"
 	"-fno-omit-frame-pointer"
-	#  "-fsanitize=address"
+	"-fsanitize=address"
 	"-fsanitize=undefined"
 	# "-O3"
 	"-ffast-math"
@@ -53,6 +53,7 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/src/primitive_collection.cpp"
 	"${PROJECT_SOURCE_DIR}/src/mesh_data.cpp"
 	"${PROJECT_SOURCE_DIR}/src/bvh_tree.cpp"
+	"${PROJECT_SOURCE_DIR}/src/blender_jsd_loader.cpp"
 	"${PROJECT_SOURCE_DIR}/src/materials/pbr_material.cpp"
 )
 
@@ -81,6 +82,11 @@ if (glm_FOUND)
 else()
 	message(FATAL_ERROR "Please install GLM!")
 endif()
+
+# Look for JSON
+find_package(nlohmann_json 3.2.0 REQUIRED)
+include_directories(${nlohmann_json_INCLUDE_DIRS})
+target_link_libraries(rt nlohmann_json::nlohmann_json)
 
 # Copy resources
 file(COPY "${PROJECT_SOURCE_DIR}/resources" DESTINATION "${PROJECT_BINARY_DIR}")
