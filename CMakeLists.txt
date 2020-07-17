@@ -4,6 +4,8 @@ project(rt)
 # General compilation flags
 set(CXX_FLAGS_LIST
 	"-Wall"
+	"-Wextra"
+	"-Wno-unused-parameter"
 	"--std=c++17"
 	"-pthread"
 )
