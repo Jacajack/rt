@@ -89,7 +89,8 @@
 			"variant": "cpp",
 			"shared_mutex": "cpp",
 			"*.ipp": "cpp",
-			"*.cl": "cpp"
+			"*.cl": "cpp",
+			"forward_list": "cpp"
 		}
 	}
 }
