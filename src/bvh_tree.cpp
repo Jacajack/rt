@@ -34,8 +34,11 @@ bvh_tree::bvh_tree(const rt::scene &scene) :
 		std::copy(col.planes.begin(), col.planes.end(), std::back_inserter(m_planes));
 	}
 
-	m_tree.get_root_node().emplace(m_triangles.data(), m_triangles.data() + m_triangles.size());
-	build_tree();
+	if (m_triangles.size())
+	{
+		m_tree.get_root_node().emplace(m_triangles.data(), m_triangles.data() + m_triangles.size());
+		build_tree();
+	}
 }
 
 void bvh_tree::build_tree()
