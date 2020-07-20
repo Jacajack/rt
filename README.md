@@ -4,6 +4,9 @@ Another exercise in programming...
 
 <hr>
 
+2020-07-20 - Fixed diffuse term in PBR material... It's seems too dark and desaturated now, though. Will need to take some time and *really* dive into the math...
+<img src=screens/1595284318-2823S.png /><br>
+
 2020-07-18 - Scene import from Blender using custom JSD file. Some artifacts are visible here - that's the reason why PBR material BSDF needs to be reworked:<br>
 <img src=screens/1595029745-893S.png /><br>
 ~893 samples, 0.5259 per sample (3.15s)
