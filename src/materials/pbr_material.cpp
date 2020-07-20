@@ -116,8 +116,8 @@ rt::ray_bounce pbr_material::get_bounce(const rt::path_tracer &ctx, const rt::ra
 	float pdf = D * glm::dot(wm, hit.normal) / 4.f / glm::dot(wm, wi);
 
 	// Smith's geometry shadowing function
-	float smith_k = std::pow(m_alpha + 1, 2.f) / 8.f;
-	// float G = smith_shadowing(wi, wo, hit.normal, smith_k);
+	//float smith_k = std::pow(m_alpha + 1, 2.f) / 8.f;
+	//float G = smith_shadowing(wi, wo, hit.normal, smith_k);
 	float G = beckmann_shadowing(wo, hit.normal, m_roughness);
 
 	// Cook-Torrance specular reflection BRDF without Fresnel factor
@@ -136,19 +136,20 @@ rt::ray_bounce pbr_material::get_bounce(const rt::path_tracer &ctx, const rt::ra
 	// float r3 = drand48(); // REPLACE
 	if (r3 > F)
 	{
-		theta = r2 * 0.5f * rt::pi<>;
+		float cos_theta = std::sqrt(r1);
+		float sin_theta = std::sqrt(1.f - r1);
 		glm::vec3 wr_local{
-			std::sin(theta) * std::cos(phi),
-			std::sin(theta) * std::sin(phi),
-			std::cos(theta)
+			sin_theta * std::cos(2.f * rt::pi<> * r2),
+			sin_theta * std::sin(2.f * rt::pi<> * r2),
+			cos_theta
 		};
 		glm::vec3 wr = tbn_mat * wr_local;
 
 		wi = wr;
 		reflected_ray = rt::ray{hit.position + hit.normal * bounce_offset, wr};
 
-		brdf = lambert;
-		pdf = 1.f / 2.f / rt::pi<>;
+		pdf = 1.f;
+		brdf = m_color;
 	}
 	else
 	{
