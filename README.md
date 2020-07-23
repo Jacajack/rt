@@ -4,6 +4,10 @@ Another exercise in programming...
 
 <hr>
 
+2020-07-22 - New improved BSDF, Russian Roulette ray termination based on path weight, Uncharted 2 filmic tonemapping:
+<img src=screens/1595468010-2000S.png /><br>
+2000 samples, 0.26632s per sample (1.59s), _I only dislike that shadow in front of the blue box..._
+
 2020-07-20 - Fixed diffuse term in PBR material... It's seems too dark and desaturated now, though. Will need to take some time and *really* dive into the math...
 <img src=screens/1595284318-2823S.png /><br>
 
