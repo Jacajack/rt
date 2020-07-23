@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3)
 project(rt)
 
+option(WITH_OIDN "Build with OpenImageDenoiser" ON)
+
 # General compilation flags
 set(CXX_FLAGS_LIST
 	"-Wall"
@@ -55,6 +57,7 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/src/primitive_collection.cpp"
 	"${PROJECT_SOURCE_DIR}/src/mesh_data.cpp"
 	"${PROJECT_SOURCE_DIR}/src/bvh_tree.cpp"
+	"${PROJECT_SOURCE_DIR}/src/denoise.cpp"
 	"${PROJECT_SOURCE_DIR}/src/blender_jsd_loader.cpp"
 	"${PROJECT_SOURCE_DIR}/src/materials/pbr_material.cpp"
 	"${PROJECT_SOURCE_DIR}/src/materials/general_bsdf.cpp"
@@ -90,6 +93,15 @@ endif()
 find_package(nlohmann_json 3.2.0 REQUIRED)
 include_directories(${nlohmann_json_INCLUDE_DIRS})
 target_link_libraries(rt nlohmann_json::nlohmann_json)
+
+# OIDN if enabled
+if (WITH_OIDN)
+	include("${PROJECT_SOURCE_DIR}/cmake/oidn.cmake")
+	add_dependencies(rt oidn_download)
+	target_link_libraries(rt ${OIDN_LIBS})
+	target_include_directories(rt PRIVATE ${OIDN_INCLUDE_DIRS})
+	target_compile_definitions(rt PRIVATE "WITH_OIDN")
+endif()
 
 # Copy resources
 file(COPY "${PROJECT_SOURCE_DIR}/resources" DESTINATION "${PROJECT_BINARY_DIR}")

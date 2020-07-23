@@ -30,6 +30,7 @@
 #include "materials/pbr_material.hpp"
 #include "materials/glass.hpp"
 #include "tonemapping.hpp"
+#include "denoise.hpp"
 
 int main(int argc, char **argv)
 {
@@ -94,6 +95,14 @@ int main(int argc, char **argv)
 	glm::vec3 camera_dir{0, 0, -1};
 	glm::vec3 camera_velocity{0.f};
 
+	// True if denoiser should be triggered
+	bool denoise_flag = false;
+	bool is_running = true;
+
+	// Current HDR
+	rt::hdr_image hdr{ren.get_image().get_width(), ren.get_image().get_height()};
+	bool is_denoised = false;
+
 	// Main loop
 	sf::Clock dt_clock;
 	while (window.isOpen())
@@ -152,9 +161,31 @@ int main(int argc, char **argv)
 						std::stringstream ss;
 						ss << std::time(nullptr);
 						ss << "-" << ren.get_image().get_sample_count() << "S";
+						if (is_denoised) ss << "D";
 						ss << ".png"; 
 						spr.getTexture()->copyToImage().saveToFile(ss.str());
+						std::cerr << "saved '" << ss.str() << "'..." << std::endl;
 					}
+					
+					if (ev.key.code == sf::Keyboard::P && is_running)
+					{
+						ren.stop();
+						is_running = false;
+					}
+
+					if (ev.key.code == sf::Keyboard::O && !is_running)
+					{
+						ren.start();
+						is_running = true;
+					}
+
+					if (ev.key.code == sf::Keyboard::U)
+					{
+						if (is_running) ren.stop();
+						is_running = false;
+						denoise_flag = true;
+					}
+
 					break;
 				}
 
@@ -183,7 +214,30 @@ int main(int argc, char **argv)
 		// Compute temp result
 		// FIXME
 		ren.compute_result();
-		rt::hdr_image tmp(ren.get_image());
+		
+		if (denoise_flag)
+		{
+			try
+			{
+				hdr = rt::denoise_hdr_image(ren.get_image(), true);
+				is_denoised = true;
+			}
+			catch (const std::exception &ex)
+			{
+				std::cerr << "Could not denoise image - " << ex.what() << std::endl;
+			}
+		}
+		else
+		{
+			if (is_running)
+			{
+				hdr = ren.get_image();
+				is_denoised = false;
+			}
+		}
+		denoise_flag = false;
+
+		rt::hdr_image tmp{hdr};
 		for (auto &p : tmp.get_data())
 			p = rt::gamma_correction(rt::tonemap_filmic(p));
 		rt::image<rt::rgba_pixel> img(tmp);

@@ -412,6 +412,7 @@ image<T> &image<T>::operator=(const sampled_image<U> &src)
 	for (auto &p : tmp)
 		p /= src.get_sample_count();
 	image<T>::operator=(std::move(tmp));
+	return *this;
 }
 
 template <typename T, typename U>
