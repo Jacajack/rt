@@ -11,6 +11,7 @@
 #include "camera.hpp"
 #include "scene.hpp"
 #include "materials/pbr_material.hpp"
+#include "materials/general_bsdf.hpp"
 #include "materials/glass.hpp"
 
 using namespace nlohmann;
@@ -28,19 +29,14 @@ static void read_json_vector(glm::vec3 &v, const json &j)
 */
 static std::shared_ptr<rt::abstract_material> make_material(const json &m)
 {
-	glm::vec3 base_color, emission;
-	read_json_vector(base_color, m["base_color"]);
-	read_json_vector(emission, m["emission"]);
-
-	float metallic = m["metallic"].get<float>();
-	float roughness = 0.05f + m["roughness"].get<float>();
-	float transmission = m["transmission"].get<float>();
-	float ior = m["ior"].get<float>();
-
-	if (transmission)
-		return std::make_shared<rt::simple_glass_material>(base_color, ior);
-	else
-		return std::make_shared<rt::pbr_material>(base_color, roughness, metallic, emission);
+	rt::general_bsdf gbsdf;
+	read_json_vector(gbsdf.base_color, m["base_color"]);
+	read_json_vector(gbsdf.emission, m["emission"]);
+	gbsdf.metallic = m["metallic"].get<float>();
+	gbsdf.roughness = m["roughness"].get<float>();
+	gbsdf.transmission = m["transmission"].get<float>();
+	gbsdf.ior = m["ior"].get<float>();
+	return std::make_shared<rt::general_bsdf>(gbsdf);
 }
 
 /**

@@ -57,6 +57,7 @@ add_executable(
 	"${PROJECT_SOURCE_DIR}/src/bvh_tree.cpp"
 	"${PROJECT_SOURCE_DIR}/src/blender_jsd_loader.cpp"
 	"${PROJECT_SOURCE_DIR}/src/materials/pbr_material.cpp"
+	"${PROJECT_SOURCE_DIR}/src/materials/general_bsdf.cpp"
 )
 
 # Look for Assimp
