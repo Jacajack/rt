@@ -14,7 +14,7 @@ path_tracer::path_tracer(const rt::scene &sc, rt::sampled_hdr_image &img, unsign
 {
 }
 
-glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, float p_extinct) const
+glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, float survival_bias) const
 {
 	// Hit record and bounce/scatter
 	rt::ray_hit hit;
@@ -32,10 +32,11 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, f
 	while (depth < max_depth && weight != glm::vec3{0.f})
 	{
 		// Russian roulette for path termination
-		if (get_rand() < p_extinct)
+		float p_survive = std::min(1.f, survival_bias * std::max(weight.x, std::max(weight.y, weight.z)));
+		if (get_rand() >= p_survive)
 			break;
 
-		weight /= 1.f - p_extinct;
+		weight /= p_survive;
 		hit = m_scene->cast_ray(r, *m_accelerator);
 		bounce = hit.material->get_bounce(*this, hit, ior);
 

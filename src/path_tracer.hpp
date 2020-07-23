@@ -27,10 +27,10 @@ public:
 	path_tracer(const rt::scene &sc, rt::sampled_hdr_image &img, unsigned long seed);
 
 	//! Samples one pixel
-	glm::vec3 sample_pixel(const glm::vec2 &pixel_pos, int max_depth = 40, float p_extinct = 0.0f) const;
+	glm::vec3 sample_pixel(const glm::vec2 &pixel_pos, int max_depth = 40, float survival_bias = 4.f) const;
 	
 	//! Samples each pixel in the image
-	void sample_image(int max_depth = 40, float p_extinct = 0.0f, const std::atomic<bool> *stop_flag = nullptr);
+	void sample_image(int max_depth = 40, float survival_bias = 4.0f, const std::atomic<bool> *stop_flag = nullptr);
 
 	//! Clears the image and resets sample number
 	void clear_image();
