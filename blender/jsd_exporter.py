@@ -13,6 +13,9 @@ import bpy, bmesh
 import json
 from mathutils import *
 from math import *
+import copy
+
+from bpy_extras.io_utils import ExportHelper
 
 C = bpy.context
 D = bpy.data
@@ -25,6 +28,14 @@ def print(data):
 			if area.type == 'CONSOLE':
 				override = {'window': window, 'screen': screen, 'area': area}
 				bpy.ops.console.scrollback_append(override, text=str(data), type="OUTPUT")
+
+# Converts vector (Z/Y swap, negative Y)
+def convert_vector(V):
+	v = copy.deepcopy(V)
+	tmp = v.y
+	v.y = v.z
+	v.z = -tmp
+	return v
 
 # Converts material (as in bpy.data.materials) to my format
 def convert_material(material):
@@ -60,48 +71,48 @@ def convert_material(material):
 		mat_data['transmission'] = 1
 		mat_data['base_color'] = list(bsdf.inputs['Color'].default_value)
 		mat_data['ior'] = bsdf.inputs['IOR'].default_value
+		mat_data['roughness'] = bsdf.inputs['Roughness'].default_value
 	
 	return mat_data
 
 # Converts object given as an argument to JSON representation
-def convert_object(o):
-	obj = {}
-	
-	# Object name
-	obj['name'] = o.name
-	print(o.name)
+def convert_object(obj):
+	data = {
+		'type': 'mesh',
+		'name': obj.name,
+		'materials': [],
+		'vertices': [],
+		'faces': []
+	}
 	
 	# Materials
-	obj['materials'] = []
-	for mat_slot in o.material_slots:
-		obj['materials'].append(convert_material(mat_slot.material))
+	for mat_slot in obj.material_slots:
+		data['materials'].append(convert_material(mat_slot.material))
 	
 	# Det dependency graph
 	dg = bpy.context.evaluated_depsgraph_get()
 	
 	# Triangulate (create a new mesh form the object and usign the deps graph)
 	bm = bmesh.new()
-	bm.from_object(o, dg)
+	bm.from_object(obj, dg)
 	bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
 	bm.verts.ensure_lookup_table()
 	bm.faces.ensure_lookup_table()
 	
-	mat = o.matrix_world
+	mat = obj.matrix_world
 	
 	# Vertex data
-	obj['vertices'] = []
 	for v in bm.verts:   
 		vco = mat @ v.co
 		vno = v.normal.to_4d()
 		vno.w = 0
 		vno = (mat @ vno).to_3d()
 		vert = {}
-		vert['p'] = [vco.x, vco.z, -vco.y] # X/Z swap
-		vert['n'] = [vno.x, vno.z, -vno.y]
-		obj['vertices'].append(vert)
+		vert['p'] = list(convert_vector(vco))
+		vert['n'] = list(convert_vector(vno))
+		data['vertices'].append(vert)
 		
 	# Faces data
-	obj['faces'] = []
 	for f in bm.faces:
 		face = {}
 		face['vi'] = []
@@ -113,37 +124,72 @@ def convert_object(o):
 		N.w = 0
 		N = (mat @ N).to_3d()
 		face['n'] = [N.x, N.z, -N.y]
-		obj['faces'].append(face)
+		data['faces'].append(face)
 	
 	# Free the mesh
 	bm.free()
-	return obj
+	return data
+
+def convert_camera(cam):
+	pos = cam.location
+	rot = cam.rotation_euler
+	mat = cam.matrix_world
+	data = {
+		'type': 'camera',
+		'name': cam.name,
+		'near_plane': cam.data.clip_start,
+		'far_plane': cam.data.clip_end,
+		'sensor_size': [cam.data.sensor_width, cam.data.sensor_height],
+		'fov': [cam.data.angle_x, cam.data.angle_y],
+		'position': list(convert_vector(pos)),
+		'rotation': [rot.x, rot.z -rot.y],
+		'right': list(convert_vector(mat.col[0])),
+		'up': list(convert_vector(mat.col[1])),
+		'forward': list(convert_vector(-mat.col[2])),
+	}
+	return data
 	
+def convert_world(world):
+	data = {
+		'type': 'world',
+		'name': world.name,
+		'color': [0, 0, 0]
+	}
+	bsdf = world.node_tree.nodes.get("Background")
+	if (bsdf):
+		col = bsdf.inputs['Color'].default_value
+		st = bsdf.inputs['Strength'].default_value
+		data['color'] = [col[0] * st, col[1] * st, col[2] * st]
+	return data
+
 # Converts active scene to JSON format
 def convert_scene(scene):
-	data = {}
-	data['objects'] = []
-	
-	# Iterate over meshes
-	for o in scene.objects:
-		if (o.type == 'MESH'):
-			data['objects'].append(convert_object(o))
+	data = {
+		'objects': [],
+		'cameras': [],
+		'world': convert_world(scene.world)
+	}
+		
+	# Iterate over objects
+	for obj in scene.objects:
+		if (obj.type == 'MESH'):
+			data['objects'].append(convert_object(obj))
+		elif (obj.type == 'CAMERA'):
+			data['cameras'].append(convert_camera(obj))
 
 	return data;
 
 # --------------- Blender Exporter Registration ---------------- 
 
-class ObjectExport(bpy.types.Operator):
+class ObjectExport(bpy.types.Operator, ExportHelper):
 	bl_idname = "object.export_jsd"
 	bl_label = "Export JSD file"
 	bl_options = {'REGISTER', 'UNDO'}
 	filename_ext = ".jsd"
 	
-	filename = bpy.props.StringProperty(subtype = 'FILE_PATH')
-	
 	def execute(self, context):
 		scene_data = convert_scene(context.scene)
-		f = open(self.filename, 'w')
+		f = open(self.filepath, 'w')
 		f.write(json.dumps(scene_data))
 		f.close()
 		return {'FINISHED'}
