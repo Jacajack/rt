@@ -22,15 +22,13 @@ using hdr_pixel = glm::vec3;
 struct rgb_pixel
 {
 	/**
-		Default tonemapping - Reinhard + Gamma correction
+		No tonemapping by default
 	*/
 	rgb_pixel(hdr_pixel p)
 	{
-		p = p / (p + 1.f);
-		p = glm::pow(p, glm::vec3{1.f / 2.2f});
-		r = p.r * 255.99f;
-		g = p.g * 255.99f;
-		b = p.b * 255.99f;
+		r = glm::clamp(p.r * 255.99f, 0.f, 255.f);
+		g = glm::clamp(p.g * 255.99f, 0.f, 255.f);
+		b = glm::clamp(p.b * 255.99f, 0.f, 255.f);
 	}
 
 	std::uint8_t r, g, b;
@@ -42,15 +40,13 @@ struct rgb_pixel
 struct rgba_pixel
 {
 	/**
-		Default tonemapping - Reinhard + Gamma correction
+		No tonemapping by default
 	*/
 	rgba_pixel(hdr_pixel p)
 	{
-		p = p / (p + 1.f);
-		p = glm::pow(p, glm::vec3{1.f / 2.2f});
-		r = p.r * 255.99f;
-		g = p.g * 255.99f;
-		b = p.b * 255.99f;
+		r = glm::clamp(p.r * 255.99f, 0.f, 255.f);
+		g = glm::clamp(p.g * 255.99f, 0.f, 255.f);
+		b = glm::clamp(p.b * 255.99f, 0.f, 255.f);
 		a = 255;
 	}
 
@@ -67,6 +63,8 @@ struct rgba_pixel
 
 /**
 	2D image built of pixels of type T
+
+	\todo Fix tonemapping ctors
 */
 template <typename T>
 class image
@@ -91,6 +89,12 @@ public:
 	*/
 	template <typename U>
 	image<T> &operator=(const sampled_image<U> &src);
+
+	/**
+		Tonemapping constructor for sampled images
+	*/
+	template <typename U>
+	image(const sampled_image<U> &src, std::function<T(const U&)> conv);
 
 	/**
 		"Tonemapping" constructor
@@ -158,6 +162,14 @@ public:
 		Direct access to the data
 	*/
 	const std::vector<T> &get_data() const
+	{
+		return m_data;
+	}
+
+	/**
+		Direct access to the data
+	*/
+	std::vector<T> &get_data()
 	{
 		return m_data;
 	}
@@ -369,6 +381,27 @@ image<T>::image(const sampled_image<U> &src)
 	for (auto &p : tmp)
 		p /= src.get_sample_count();
 	image<T>::operator=(std::move(tmp));
+}
+
+/**
+	Sampled images are converted to normal images by simply
+	dividing each pixel by the number of samples and tonemapping
+	with provided function
+*/
+template <typename T>
+template <typename U>
+image<T>::image(const sampled_image<U> &src, std::function<T(const U&)> conv)
+{
+	image<U> tmp(static_cast<const image<U>&>(src));
+	for (auto &p : tmp)
+		p /= src.get_sample_count();
+
+	m_data.reserve(m_width * m_height);
+	std::transform(
+		src.m_data.begin(), src.m_data.end(),
+		std::back_inserter(m_data),
+		conv
+		);
 }
 
 template <typename T>

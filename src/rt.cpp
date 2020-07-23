@@ -29,6 +29,7 @@
 
 #include "materials/pbr_material.hpp"
 #include "materials/glass.hpp"
+#include "tonemapping.hpp"
 
 int main(int argc, char **argv)
 {
@@ -41,7 +42,7 @@ int main(int argc, char **argv)
 	glm::ivec2 render_size{1024, 1024};
 
 	// The scene
-	rt::scene scene = rt::load_jsd_scene("resources/test_box.jsd");
+	rt::scene scene = rt::load_jsd_scene("resources/test_box_new.jsd");
 
 
 
@@ -180,8 +181,13 @@ int main(int argc, char **argv)
 		cam.set_position(cam.get_position() + cam.get_matrix() * camera_velocity * dt);
 
 		// Compute temp result
+		// FIXME
 		ren.compute_result();
-		rt::image<rt::rgba_pixel> img(ren.get_image());
+		rt::hdr_image tmp(ren.get_image());
+		for (auto &p : tmp.get_data())
+			p = rt::gamma_correction(rt::tonemap_filmic(p));
+		rt::image<rt::rgba_pixel> img(tmp);
+
 		last_samples = samples;
 		samples = ren.get_image().get_sample_count();
 
