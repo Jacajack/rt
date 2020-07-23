@@ -4,6 +4,10 @@ Another exercise in programming...
 
 <hr>
 
+2020-07-23 - Integrated with OpenImageDenoise:
+<img src=screens/1595537701-627SD.png /><br>
+627 samples, **denoised**
+
 2020-07-22 - New improved BSDF, Russian Roulette ray termination based on path weight, Uncharted 2 filmic tonemapping:
 <img src=screens/1595468010-2000S.png /><br>
 2000 samples, 0.26632s per sample (1.59s), _I only dislike that shadow in front of the blue box..._
