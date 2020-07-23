@@ -32,11 +32,11 @@ glm::vec3 path_tracer::sample_pixel(const glm::vec2 &pixel_pos, int max_depth, f
 	while (depth < max_depth && weight != glm::vec3{0.f})
 	{
 		// Russian roulette for path termination
-		float p_survive = std::min(1.f, survival_bias * std::max(weight.x, std::max(weight.y, weight.z)));
-		if (get_rand() >= p_survive)
+		float p_survive = survival_bias * std::max(weight.x, std::max(weight.y, weight.z));
+		if (p_survive < 1.f && get_rand() >= p_survive)
 			break;
 
-		weight /= p_survive;
+		weight /= glm::min(p_survive, 1.f);
 		hit = m_scene->cast_ray(r, *m_accelerator);
 		bounce = hit.material->get_bounce(*this, hit, ior);
 
