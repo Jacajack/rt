@@ -64,10 +64,10 @@ add_executable(
 )
 
 # Look for Assimp
-find_package(ASSIMP REQUIRED)
-if (ASSIMP_FOUND)
-	include_directories(${ASSIMP_INCLUDE_DIRS})
-	target_link_libraries(rt ${ASSIMP_LIBRARIES})
+find_package(assimp REQUIRED)
+if (assimp_FOUND)
+	include_directories(${assimp_INCLUDE_DIRS})
+	target_link_libraries(rt ${assimp_LIBRARIES} assimp)
 else()
 	message(FATAL_ERROR "Please install Assimp!")
 endif()

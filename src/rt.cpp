@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	glm::ivec2 render_size{1024, 1024};
 
 	// The scene
-	rt::scene scene = rt::load_jsd_scene("resources/test_box_new.jsd");
+	rt::scene scene = rt::load_jsd_scene("resources/test_box.jsd");
 
 
 
